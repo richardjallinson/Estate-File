@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1D";
+const APP_VERSION = "v1E";
 
 // ---- Day and night.
 //
@@ -190,7 +190,9 @@ const MapleLeaf = (props) => h("svg", {
 const PROVINCES = [
   { id: "ON", label: "Ontario", short: "ON" },
   { id: "BC", label: "British Columbia", short: "B.C." },
-  { id: "AB", label: "Alberta", short: "AB" }
+  { id: "AB", label: "Alberta", short: "AB" },
+  { id: "SK", label: "Saskatchewan", short: "SK" },
+  { id: "MB", label: "Manitoba", short: "MB" }
 ];
 const normaliseProvinceId = (id) => {
   const key = String(id || "ON").trim().toUpperCase();
@@ -211,8 +213,9 @@ function benefitCategories(province) {
 }
 
 // Figures are the published 2026 amounts. Provincial court fees and filing
-// rules below were checked against the official Ontario, B.C. and Alberta
-// sources in August 2026. They remain reference information, not legal advice.
+// rules below were checked against the official Ontario, B.C., Alberta,
+// Saskatchewan and Manitoba sources in August 2026. They remain reference
+// information, not legal advice.
 const RATES_READ = "August 2026";
 
 function ratesAreStale() {
@@ -228,6 +231,8 @@ function benefitLinkText(url) {
   else if (/ontario\.ca/i.test(url)) label = "Open official Ontario.ca page";
   else if (/bclaws\.gov\.bc\.ca|gov\.bc\.ca/i.test(url)) label = "Open official B.C. page";
   else if (/alberta\.ca|surrogate\.alberta\.ca/i.test(url)) label = "Open official Alberta page";
+  else if (/saskatchewan\.ca|sasklawcourts\.ca|ehealthsask\.ca/i.test(url)) label = "Open official Saskatchewan page";
+  else if (/gov\.mb\.ca|manitobacourts\.mb\.ca|web2\.gov\.mb\.ca|vitalstats\.gov\.mb\.ca/i.test(url)) label = "Open official Manitoba page";
   return t(label) + (info.english ? t(" (page in English)") : "");
 }
 
@@ -298,13 +303,55 @@ const PROVINCIAL_BENEFITS = {
       what: "Alberta does not have a general will registry. The executor may need to search the deceased's records, safe-deposit box, lawyer or other likely storage locations.",
       rate: "No Alberta will-registry search is available for an ordinary will.",
       url: "https://www.alberta.ca/deceased-persons-estates" }
+  ],
+  SK: [
+    { id: "skfees", cat: "prov", name: "Saskatchewan probate levy and filing fee",
+      what: "A standard application for Letters Probate or Letters of Administration has a $200 Local Registrar filing fee plus a probate levy. Saskatchewan describes the levy as $7 on every $1,000 of value passing through the estate; the government application guidance calculates it from Total Part 1 Assets on the Statement of Property. The Probate tab calculates the standard filing fee and levy from the value you enter.",
+      rate: "$7 for every $1,000 or portion of $1,000, plus the $200 filing fee. A Certificate of No Infants, when requested, is a separate $25 fee.",
+      url: "https://sasklawcourts.ca/kings-bench/wills-and-estates/probating-an-estate/" },
+    { id: "skforms", cat: "prov", name: "Saskatchewan probate application package",
+      what: "The Court of King's Bench publishes a self-represented Letters Probate package for the straightforward situation where there is a will, the named executor is applying, and the will has two witnesses.",
+      rate: "The package includes an Application for Grant of Probate, affidavits, Statement of Property and proof of death. Different circumstances can require administration forms or other material.",
+      url: "https://sasklawcourts.ca/kings-bench/wills-and-estates/application-for-probate/" },
+    { id: "skregistry", cat: "prov", name: "Wills and Estates Registry",
+      what: "Saskatchewan's Wills and Estates Registry records estate applications filed in court. It can help identify whether an estate court file exists and where it is located; it is not a registry of every will made in Saskatchewan.",
+      rate: "Registry records go back to 1883. The Law Society also provides a Lost Wills List process for lawyers who are trying to locate a will.",
+      url: "https://sasklawcourts.ca/resources/common-questions/" },
+    { id: "sksmall", cat: "prov", name: "Saskatchewan small-estate order",
+      what: "If the deceased's personal property is $25,000 or less and no Saskatchewan real property will pass through the estate, the Court of King's Bench can make a small-estate order instead of issuing Letters Probate or Letters of Administration.",
+      rate: "Form 16-36. The Local Registrar fee for this small-estate order is $100. A separate registrar-assisted grant process exists for qualifying estates of $15,000 or less and uses different fees.",
+      url: "https://www.saskatchewan.ca/residents/births-deaths-marriages-and-divorces/dealing-with-death/administering-the-estate-of-someone-whos-died/estates-not-exceeding-25000" }
+  ],
+  MB: [
+    { id: "mbfees", cat: "prov", name: "Manitoba probate application charge",
+      what: "Manitoba eliminated charges relating to applications for probate or administration effective November 6, 2020. The current Court Services Fees Regulation lists other probate-service fees but no value-based charge for filing a probate or administration request. The Probate calculator therefore shows $0 for the application charge.",
+      rate: "No value-based probate application charge. Separate court services can still have fees, including caveats, searches and certified documents.",
+      url: "https://web2.gov.mb.ca/laws/regs/current/150-2021.php",
+      moreUrl: "https://www.manitobacourts.mb.ca/site/assets/files/1152/2020-11-06_notice_-_elimination_of_probate_charges.pdf",
+      moreLabel: "Open Manitoba court notice eliminating probate charges" },
+    { id: "mbforms", cat: "prov", name: "Manitoba Rule 74 probate forms",
+      what: "Manitoba Court of King's Bench probate work uses Rule 74 forms. Form 74A is the Request for Probate and Form 74B is the Inventory and Valuation of the Property of the Deceased.",
+      rate: "Administration and other situations use different Rule 74 forms, including 74C and 74L. Use the current prescribed forms for the estate's circumstances.",
+      url: "https://web2.gov.mb.ca/laws/rules/forms_e.php" },
+    { id: "mbregistry", cat: "prov", name: "Probate Registry and estate-file search",
+      what: "The Court of King's Bench Probate Division in Winnipeg is the central registry for Manitoba probate matters. Court and Archives searches locate estate files and wills that were filed as part of probate proceedings; that is not the same thing as a universal registry of every will made in Manitoba.",
+      rate: "Computerized probate records from 1984 onward can be searched through the Court Registry System. Older estate files can be searched through the Archives of Manitoba.",
+      url: "https://www.manitobacourts.mb.ca/court-of-queens-bench/frequently-asked-questions/probate-division/",
+      moreUrl: "https://www.gov.mb.ca/chc/archives/estate/index.html",
+      moreLabel: "Open Archives of Manitoba estate-file search" },
+    { id: "mbsmall", cat: "prov", name: "Manitoba summary administration for a small estate",
+      what: "Section 47 of The Court of King's Bench Surrogate Practice Act allows the court, where the total value of all of the deceased's property does not exceed $10,000, to make a summary administration order without a grant of probate or administration.",
+      rate: "The current Rule 74 form list includes Form 74FF, Request for Order under Section 47. The court decides whether the summary procedure applies.",
+      url: "https://web2.gov.mb.ca/laws/statutes/ccsm/c290.php?lang=en",
+      moreUrl: "https://web2.gov.mb.ca/laws/rules/forms_e.php",
+      moreLabel: "Open current Manitoba Rule 74 forms" }
   ]
 };
 function benefitsForProvince(province) {
   return FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS[normaliseProvinceId(province)] || []);
 }
 // Kept as a complete directory for exports/tests; the screen filters to the selected province.
-const BENEFITS = FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB);
+const BENEFITS = FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB, PROVINCIAL_BENEFITS.SK, PROVINCIAL_BENEFITS.MB);
 
 function calculateProbateFees(province, value) {
   const p = normaliseProvinceId(province);
@@ -323,12 +370,23 @@ function calculateProbateFees(province, value) {
     const courtFee = raw > 25000 ? 200 : 0;
     return { province: p, value: raw, probateFee, courtFee, total: probateFee + courtFee };
   }
-  let courtFee = 35;
-  if (raw > 250000) courtFee = 525;
-  else if (raw > 125000) courtFee = 400;
-  else if (raw > 25000) courtFee = 275;
-  else if (raw > 10000) courtFee = 135;
-  return { province: p, value: raw, courtFee, total: courtFee };
+  if (p === "AB") {
+    let courtFee = 35;
+    if (raw > 250000) courtFee = 525;
+    else if (raw > 125000) courtFee = 400;
+    else if (raw > 25000) courtFee = 275;
+    else if (raw > 10000) courtFee = 135;
+    return { province: p, value: raw, courtFee, total: courtFee };
+  }
+  if (p === "SK") {
+    const probateLevy = Math.ceil(raw / 1000) * 7;
+    const courtFee = 200;
+    return { province: p, value: raw, probateLevy, courtFee, total: probateLevy + courtFee };
+  }
+  if (p === "MB") {
+    return { province: p, value: raw, probateCharge: 0, total: 0 };
+  }
+  return null;
 }
 
 // ---- The steps.
@@ -432,6 +490,30 @@ const PROBATE_LEVELS = {
       blurb: "The Court of King's Bench has issued the grant. SDS grants are issued digitally." },
     { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
       blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  SK: [
+    { id: "prep", short: "Preparation", label: "Getting the probate / administration application ready",
+      blurb: "Gather the original will if there is one, proof of death, the Statement of Property, affidavits and any other required Court of King's Bench forms." },
+    { id: "filed", short: "Filed", label: "Application filed with the Court of King's Bench",
+      blurb: "Record the filing date and the standard Local Registrar filing fee and probate levy paid for the application." },
+    { id: "notice", short: "Notices", label: "Required notices / certificates recorded",
+      blurb: "Record any notices to the Public Guardian and Trustee and any Certificate of No Infants requested for the estate." },
+    { id: "certificate", short: "Grant", label: "Letters Probate or Letters of Administration issued",
+      blurb: "The Court of King's Bench has issued the grant establishing the personal representative's court authority." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  MB: [
+    { id: "prep", short: "Preparation", label: "Getting the Rule 74 materials ready",
+      blurb: "Gather the original will if there is one, proof of death, Form 74A or the applicable administration request, Form 74B inventory and supporting affidavits." },
+    { id: "filed", short: "Filed", label: "Request filed with the Probate Division",
+      blurb: "The required Rule 74 materials have been filed with the Court of King's Bench Probate Division." },
+    { id: "notice", short: "Follow-up", label: "Court follow-up or additional material recorded",
+      blurb: "Record any request from the Probate Division for corrections, affidavits, bonds or other estate-specific material." },
+    { id: "certificate", short: "Grant", label: "Grant of Probate or Letters of Administration issued",
+      blurb: "The Court of King's Bench has issued the grant establishing the personal representative's court authority." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
   ]
 };
 function probateLevels(province) { return PROBATE_LEVELS[normaliseProvinceId(province)] || PROBATE_LEVELS.ON; }
@@ -463,26 +545,41 @@ const REPRESENTATIVES = [
 // insurer and registry wants its own.
 function evidenceItems(province) {
   const p = normaliseProvinceId(province);
-  const certificateNote = p === "ON"
-    ? "Ontario death certificates are ordered through ServiceOntario. Keep the funeral director's proof of death too."
-    : p === "BC"
-      ? "B.C. Vital Statistics issues death certificates; they can be ordered online. Keep the funeral director's proof of death too."
-      : "Alberta death documents are ordered through a registry agent (or the approved out-of-province route). Keep the funeral director's proof of death too.";
-  const grantLabel = p === "ON" ? "Estate certificate / Certificate of Appointment"
-    : p === "BC" ? "Estate / representation grant" : "Grant of Probate or Administration";
-  const valuesNote = p === "ON"
-    ? "Bank balances, appraisals and statements. Used for the court application, Estate Information Return and CRA work."
-    : p === "BC"
-      ? "Bank balances, appraisals and statements. Used to support the B.C. grant/fee information and CRA work."
-      : "Bank balances, appraisals and statements. Alberta's grant fee is based on net property in Alberta; CRA work may need the broader estate records.";
+  const provinceData = {
+    ON: {
+      certificate: "Ontario death certificates are ordered through ServiceOntario. Keep the funeral director's proof of death too.",
+      grant: "Estate certificate / Certificate of Appointment",
+      values: "Bank balances, appraisals and statements. Used for the court application, Estate Information Return and CRA work."
+    },
+    BC: {
+      certificate: "B.C. Vital Statistics issues death certificates; they can be ordered online. Keep the funeral director's proof of death too.",
+      grant: "Estate / representation grant",
+      values: "Bank balances, appraisals and statements. Used to support the B.C. grant/fee information and CRA work."
+    },
+    AB: {
+      certificate: "Alberta death documents are ordered through a registry agent (or the approved out-of-province route). Keep the funeral director's proof of death too.",
+      grant: "Grant of Probate or Administration",
+      values: "Bank balances, appraisals and statements. Alberta's grant fee is based on net property in Alberta; CRA work may need the broader estate records."
+    },
+    SK: {
+      certificate: "Saskatchewan death certificates are issued by eHealth Saskatchewan. A standard death certificate is currently $35. Keep the funeral director's proof of death too.",
+      grant: "Letters Probate or Letters of Administration",
+      values: "Bank balances, appraisals and statements. Saskatchewan's Statement of Property separates Part 1 and Part 2 assets; the standard probate levy is calculated from the applicable estate value / Total Part 1 Assets."
+    },
+    MB: {
+      certificate: "Manitoba death certificates are issued by the Vital Statistics Branch. The current regular certificate fee is $30. Keep the funeral director's proof of death too.",
+      grant: "Grant of Probate or Letters of Administration",
+      values: "Bank balances, appraisals and statements. Manitoba has no value-based probate charge, but Form 74B still records the inventory and valuation of the deceased's property for the court process."
+    }
+  }[p];
   return [
     { id: "statement", label: "Statements of Death from the funeral director", note: "Ask for several originals at the outset. Institutions may each want proof of death." },
-    { id: "certificate", label: "The provincial death certificate", note: certificateNote },
+    { id: "certificate", label: "The provincial death certificate", note: provinceData.certificate },
     { id: "will", label: "The original will", note: "Keep the original safe. Court submission and proof requirements differ by province." },
     { id: "id", label: "Your own photo identification", note: "Institutions will ask you to prove who you are as well." },
-    { id: "appointment", label: grantLabel, note: "If a court grant is needed. Some institutions will release nothing without it." },
+    { id: "appointment", label: provinceData.grant, note: "If a court grant is needed. Some institutions will release nothing without it." },
     { id: "sin", label: "The deceased's Social Insurance Number", note: "The CRA and Service Canada both ask for it on the first call." },
-    { id: "values", label: "Written values for each asset at the date of death", note: valuesNote },
+    { id: "values", label: "Written values for each asset at the date of death", note: provinceData.values },
     { id: "assessments", label: "Notices of Assessment and past returns", note: "For the final return and the clearance certificate request." }
   ];
 }
@@ -525,54 +622,90 @@ const PSC_TABLE = [];
 // actually have to ring.
 function helpSections(province) {
   const p = normaliseProvinceId(province);
-  const grief = p === "ON" ? [
-    { name: "ConnexOntario", tel: "1-866-531-2600",
-      detail: "Free, confidential, around the clock. Connects you to mental-health and related supports in Ontario.", url: "https://www.connexontario.ca/" },
-    { name: "Your family doctor", detail: "If grief is stopping you sleeping, eating or functioning, ask for medical and local bereavement support." }
-  ] : p === "BC" ? [
-    { name: "BC Bereavement Helpline", tel: "1-877-779-2223",
-      detail: "Free and confidential. Connects people with grief resources across B.C.; published hours are Monday to Friday, 9 a.m. to 5 p.m.",
-      url: "https://www2.gov.bc.ca/gov/content/life-events/death/after-death/get-support" },
-    { name: "Your family doctor", detail: "Ask for local or online bereavement supports if grief is interfering with day-to-day functioning." }
-  ] : [
-    { name: "Health Link Alberta", tel: "811",
-      detail: "Call 811 for information about health services and grief or bereavement supports available in Alberta.",
-      url: "https://www.albertahealthservices.ca/info/Page13161.aspx" },
-    { name: "211 Alberta", tel: "211", detail: "Connects people with community services and supports in Alberta." }
-  ];
-  const legal = p === "ON" ? [
-    { name: "Law Society Referral Service",
-      detail: "A free initial consultation of up to 30 minutes with a lawyer or paralegal. Run by the Law Society of Ontario.",
-      url: "https://lso.ca/public-resources/finding-a-lawyer-or-paralegal/law-society-referral-service" },
-    { name: "Office of the Public Guardian and Trustee", tel: "1-800-366-0335",
-      detail: "Ontario public trustee and guardian information, including estate-related functions in qualifying circumstances." }
-  ] : p === "BC" ? [
-    { name: "B.C. Lawyer Referral Service", tel: "604-687-3221",
-      detail: "The Canadian Bar Association, B.C. Branch service provides a consultation of up to 15 minutes for free.",
-      url: "https://www2.gov.bc.ca/gov/content/family-social-supports/seniors/financial-legal-matters/hiring-a-lawyer" },
-    { name: "Public Guardian and Trustee of British Columbia", tel: "604-660-4444",
-      detail: "The PGT administers some deceased estates and has grant-review roles where minors or incapable adults are involved.",
-      url: "https://www.trustee.bc.ca/estates-personal-trusts" }
-  ] : [
-    { name: "Law Society of Alberta Lawyer Directory",
-      detail: "Use the online directory to search by location and practice area. The Law Society does not refer or endorse a particular lawyer.",
-      url: "https://www.lawsociety.ab.ca/public/findalawyer/" },
-    { name: "Alberta Public Trustee",
-      detail: "The Public Trustee will consider administering a solvent estate only in limited circumstances, including where a minor or represented-adult client is a beneficiary and no other person is administering.",
-      url: "https://www.alberta.ca/deceased-persons-estates" }
-  ];
+  const griefByProvince = {
+    ON: [
+      { name: "ConnexOntario", tel: "1-866-531-2600",
+        detail: "Free, confidential, around the clock. Connects you to mental-health and related supports in Ontario.", url: "https://www.connexontario.ca/" },
+      { name: "Your family doctor", detail: "If grief is stopping you sleeping, eating or functioning, ask for medical and local bereavement support." }
+    ],
+    BC: [
+      { name: "BC Bereavement Helpline", tel: "1-877-779-2223",
+        detail: "Free and confidential. Connects people with grief resources across B.C.; published hours are Monday to Friday, 9 a.m. to 5 p.m.",
+        url: "https://www2.gov.bc.ca/gov/content/life-events/death/after-death/get-support" },
+      { name: "Your family doctor", detail: "Ask for local or online bereavement supports if grief is interfering with day-to-day functioning." }
+    ],
+    AB: [
+      { name: "Health Link Alberta", tel: "811",
+        detail: "Call 811 for information about health services and grief or bereavement supports available in Alberta.",
+        url: "https://www.albertahealthservices.ca/info/Page13161.aspx" },
+      { name: "211 Alberta", tel: "211", detail: "Connects people with community services and supports in Alberta." }
+    ],
+    SK: [
+      { name: "Saskatchewan HealthLine", tel: "811",
+        detail: "Free and confidential, 24/7. Registered nurses, psychiatric nurses and social workers provide health, mental-health and addictions support and can connect you with local resources.",
+        url: "https://www.saskatchewan.ca/residents/health/accessing-health-care-services/healthline" },
+      { name: "211 Saskatchewan", tel: "211", detail: "Connects people with community, social and grief-related services across Saskatchewan.", url: "https://sk.211.ca/" }
+    ],
+    MB: [
+      { name: "Health Links–Info Santé", tel: "1-888-315-9257",
+        detail: "Free 24/7 health information from nurses across Manitoba. Winnipeg callers can also use 204-788-8200.",
+        url: "https://www.gov.mb.ca/health/access.html" },
+      { name: "211 Manitoba", tel: "211", detail: "Free 24/7 connection to community services, including grief counselling and mental-health supports.", url: "https://mb.211.ca/" }
+    ]
+  };
+  const legalByProvince = {
+    ON: [
+      { name: "Law Society Referral Service",
+        detail: "A free initial consultation of up to 30 minutes with a lawyer or paralegal. Run by the Law Society of Ontario.",
+        url: "https://lso.ca/public-resources/finding-a-lawyer-or-paralegal/law-society-referral-service" },
+      { name: "Office of the Public Guardian and Trustee", tel: "1-800-366-0335",
+        detail: "Ontario public trustee and guardian information, including estate-related functions in qualifying circumstances." }
+    ],
+    BC: [
+      { name: "B.C. Lawyer Referral Service", tel: "604-687-3221",
+        detail: "The Canadian Bar Association, B.C. Branch service provides a consultation of up to 15 minutes for free.",
+        url: "https://www2.gov.bc.ca/gov/content/family-social-supports/seniors/financial-legal-matters/hiring-a-lawyer" },
+      { name: "Public Guardian and Trustee of British Columbia", tel: "604-660-4444",
+        detail: "The PGT administers some deceased estates and has grant-review roles where minors or incapable adults are involved.",
+        url: "https://www.trustee.bc.ca/estates-personal-trusts" }
+    ],
+    AB: [
+      { name: "Law Society of Alberta Lawyer Directory",
+        detail: "Use the online directory to search by location and practice area. The Law Society does not refer or endorse a particular lawyer.",
+        url: "https://www.lawsociety.ab.ca/public/findalawyer/" },
+      { name: "Alberta Public Trustee",
+        detail: "The Public Trustee will consider administering a solvent estate only in limited circumstances, including where a minor or represented-adult client is a beneficiary and no other person is administering.",
+        url: "https://www.alberta.ca/deceased-persons-estates" }
+    ],
+    SK: [
+      { name: "Law Society of Saskatchewan — Find Legal Assistance", tel: "1-877-989-4999",
+        detail: "Search the Law Society directory by location, area of law, service model and pricing options, including wills and estates.",
+        url: "https://www.lawsociety.sk.ca/for-the-public/finding-legal-assistance/" },
+      { name: "Saskatchewan Public Guardian and Trustee", tel: "306-787-5424",
+        detail: "Provincial information about estate administration and the Public Guardian and Trustee's role when there is no suitable person to administer an estate.",
+        url: "https://www.saskatchewan.ca/residents/births-deaths-marriages-and-divorces/dealing-with-death/the-public-guardian-and-trustee-administrator-of-an-estate" }
+    ],
+    MB: [
+      { name: "Law Phone-In & Lawyer Referral Program", tel: "1-800-262-8800",
+        detail: "Community Legal Education Association provides free confidential legal information and advice, and in appropriate cases a lawyer referral with a free first interview of up to 30 minutes. Winnipeg: 204-943-2382.",
+        url: "https://lawsociety.mb.ca/for-the-public/finding-a-lawyer/looking-for-general-legal-advice-or-assistance/" },
+      { name: "Public Guardian and Trustee of Manitoba", tel: "1-800-282-8069",
+        detail: "The PGT is an administrator of last resort for certain Manitoba estates where no one else is willing or able to act. Winnipeg: 204-945-2700.",
+        url: "https://www.gov.mb.ca/publictrustee/deceased_estates.html" }
+    ]
+  };
   return [
     { id: "crisis", tone: "urgent", label: "If you need to talk to someone now", note: "Free, confidential, and answered any hour of any day.", items: [
       { name: "9-8-8 Suicide Crisis Helpline", tel: "988", detail: "Call or text, anywhere in Canada. For anyone in distress, not only for thoughts of suicide.", alt: "Text 988" },
       { name: "Emergency", tel: "911", detail: "If someone is in immediate danger." }
     ] },
-    { id: "grief", tone: "normal", label: "Grief support", note: provinceDef(p).label + " resources, plus Canada-wide crisis help above.", items: grief },
+    { id: "grief", tone: "normal", label: "Grief support", note: provinceDef(p).label + " resources, plus Canada-wide crisis help above.", items: griefByProvince[p] },
     { id: "official", tone: "normal", label: "The calls you will have to make", note: "These are federal numbers. Have the Social Insurance Number in front of you before you dial.", items: [
       { name: "Service Canada, to cancel CPP and OAS", tel: "1-800-277-9914", detail: "Payments after the month of death have to be repaid, and the demand can land on the executor.", url: "https://www.canada.ca/en/services/life-events/death/notify.html" },
       { name: "Canada Revenue Agency", tel: "1-800-959-8281", detail: "Report the date of death, stop benefit payments, and ask what they need to recognise you as the legal representative.", url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/life-events/what-when-someone-died.html" },
       { name: "Employment Insurance", tel: "1-800-206-7218", detail: "If the person was receiving or might have been eligible for EI." }
     ] },
-    { id: "legal", tone: "normal", label: "If you need legal help", note: "Estate law is provincial. These routes change with the estate province selected in Settings.", items: legal }
+    { id: "legal", tone: "normal", label: "If you need legal help", note: "Estate law is provincial. These routes change with the estate province selected in Settings.", items: legalByProvince[p] }
   ];
 }
 const HELP_SECTIONS = helpSections("ON");
@@ -584,20 +717,41 @@ const HELP_SECTIONS = helpSections("ON");
 // the government page that says it.
 function guideSections(province) {
   const p = normaliseProvinceId(province);
-  const docs = p === "ON"
-    ? "The funeral director provides proof-of-death documents. Ontario death certificates are ordered through ServiceOntario and some institutions insist on the provincial certificate. Order it early if you expect to need one."
-    : p === "BC"
-      ? "The funeral director provides proof-of-death documents. B.C. Vital Statistics also issues death certificates, which can be ordered online; the published regular-mail fee is $27. Executors often need proof of death for institutions and the grant process."
-      : "The funeral home registers the death in Alberta. A death certificate or other death document can then be ordered through a registry agent; the government fee is $20 and the registry agent adds its own service fee.";
-  const probate = p === "ON"
-    ? { title: "Ontario: the return after the certificate", body: "If an Ontario estate certificate is issued, the Estate Information Return is generally due within 180 calendar days after the certificate is ISSUED. Separately, the CRA clearance certificate on form TX19 comes only after every required return is filed and assessed: distributing too early can leave the legal representative personally liable.", links: [{ label: "Estate Administration Tax, on ontario.ca", url: "https://www.ontario.ca/page/estate-administration-tax" }] }
-    : p === "BC"
-      ? { title: "B.C.: wills search, notice, then the grant", body: "A B.C. grant application includes a wills-notice search even if you believe you have the original will. The intended applicant delivers Form P1 and applicable materials, and normally waits at least 21 days before applying. B.C. then charges the Probate Fee Act amount and, above $25,000, the separate Supreme Court commencement fee. CRA clearance remains a separate federal step near the end.", links: [{ label: "B.C. wills and estates", url: "https://www2.gov.bc.ca/gov/content/life-events/death/after-death/wills-estates" }] }
-      : { title: "Alberta: choose the grant application route", body: "Alberta applications go to the Court of King's Bench. Non-contentious grants can be prepared through the Surrogate Digital Service or with paper GA forms. Self-represented online applicants must meet SDS requirements. Alberta has no general will registry, so locating the original will is its own task. CRA clearance remains a separate federal step near the end.", links: [{ label: "Alberta surrogate applications", url: "https://www.alberta.ca/surrogate-applications-non-contentious-matters" }] };
+  const docsByProvince = {
+    ON: {
+      body: "The funeral director provides proof-of-death documents. Ontario death certificates are ordered through ServiceOntario and some institutions insist on the provincial certificate. Order it early if you expect to need one.",
+      links: []
+    },
+    BC: {
+      body: "The funeral director provides proof-of-death documents. B.C. Vital Statistics also issues death certificates, which can be ordered online; the published regular-mail fee is $27. Executors often need proof of death for institutions and the grant process.",
+      links: [{ label: "B.C. death certificates", url: "https://www2.gov.bc.ca/gov/content/life-events/order-certificates-copies" }]
+    },
+    AB: {
+      body: "The funeral home registers the death in Alberta. A death certificate or other death document can then be ordered through a registry agent; the government fee is $20 and the registry agent adds its own service fee.",
+      links: [{ label: "Alberta death certificates", url: "https://www.alberta.ca/order-death-certificate" }]
+    },
+    SK: {
+      body: "Proof of death from the funeral director, coroner or Vital Statistics is used in Saskatchewan estate applications. eHealth Saskatchewan lists the standard death-certificate fee at $35. Keep the funeral-home proof as well because different institutions may ask for different documents.",
+      links: [{ label: "Saskatchewan death certificates", url: "https://www.ehealthsask.ca/residents/deaths" }]
+    },
+    MB: {
+      body: "Manitoba Vital Statistics issues death certificates. The current regular issuance fee is $30 per document. Keep the funeral-home proof too, because banks, insurers and the court may ask for different forms of proof.",
+      links: [{ label: "Manitoba death certificates", url: "https://vitalstats.gov.mb.ca/online_certificate_application.html" }]
+    }
+  };
+  const probateByProvince = {
+    ON: { title: "Ontario: the return after the certificate", body: "If an Ontario estate certificate is issued, the Estate Information Return is generally due within 180 calendar days after the certificate is ISSUED. Separately, the CRA clearance certificate on form TX19 comes only after every required return is filed and assessed: distributing too early can leave the legal representative personally liable.", links: [{ label: "Estate Administration Tax, on ontario.ca", url: "https://www.ontario.ca/page/estate-administration-tax" }] },
+    BC: { title: "B.C.: wills search, notice, then the grant", body: "A B.C. grant application includes a wills-notice search even if you believe you have the original will. The intended applicant delivers Form P1 and applicable materials, and normally waits at least 21 days before applying. B.C. then charges the Probate Fee Act amount and, above $25,000, the separate Supreme Court commencement fee. CRA clearance remains a separate federal step near the end.", links: [{ label: "B.C. wills and estates", url: "https://www2.gov.bc.ca/gov/content/life-events/death/after-death/wills-estates" }] },
+    AB: { title: "Alberta: choose the grant application route", body: "Alberta applications go to the Court of King's Bench. Non-contentious grants can be prepared through the Surrogate Digital Service or with paper GA forms. Self-represented online applicants must meet SDS requirements. Alberta has no general will registry, so locating the original will is its own task. CRA clearance remains a separate federal step near the end.", links: [{ label: "Alberta surrogate applications", url: "https://www.alberta.ca/surrogate-applications-non-contentious-matters" }] },
+    SK: { title: "Saskatchewan: standard grant or small-estate route", body: "For a standard Saskatchewan grant application, the Local Registrar filing fee is $200 and the probate levy is $7 for every $1,000 or part of $1,000 of value passing through the estate. Saskatchewan's application guidance calculates the levy from Total Part 1 Assets in the Statement of Property. If personal property is $25,000 or less and no Saskatchewan real property will pass through the estate, a $100 small-estate order under Form 16-36 may be available instead. The Court also has a registrar-assisted process for qualifying estates of $15,000 or less. CRA clearance remains a separate federal step near the end.", links: [{ label: "Saskatchewan probate information", url: "https://sasklawcourts.ca/kings-bench/wills-and-estates/probating-an-estate/" }, { label: "Saskatchewan estates not exceeding $25,000", url: "https://www.saskatchewan.ca/residents/births-deaths-marriages-and-divorces/dealing-with-death/administering-the-estate-of-someone-whos-died/estates-not-exceeding-25000" }] },
+    MB: { title: "Manitoba: no value-based probate charge; Rule 74 still applies", body: "Manitoba eliminated charges relating to applications for probate or administration effective November 6, 2020. Probate work still uses Court of King's Bench Rule 74 forms, including Form 74A for a Request for Probate and Form 74B for the inventory and valuation. For estates whose total property does not exceed $10,000, section 47 also allows the court to use summary administration without a grant; the current form list includes Form 74FF for that request. The Probate Division in Winnipeg is the central registry. Separate court services, such as searches, caveats or certified documents, can still have fees. CRA clearance remains a separate federal step near the end.", links: [{ label: "Manitoba Probate Division", url: "https://www.manitobacourts.mb.ca/court-of-queens-bench/frequently-asked-questions/probate-division/" }, { label: "Manitoba Rule 74 forms", url: "https://web2.gov.mb.ca/laws/rules/forms_e.php" }, { label: "Manitoba Surrogate Practice Act", url: "https://web2.gov.mb.ca/laws/statutes/ccsm/c290.php?lang=en" }] }
+  };
+  const docs = docsByProvince[p] || docsByProvince.ON;
+  const probate = probateByProvince[p] || probateByProvince.ON;
   return [
     { id: "first", title: "The first calls", body: "Service Canada first, to stop CPP and OAS: benefits are payable for the month of the death and no further, and anything paid after that has to be repaid out of the estate. Then the Canada Revenue Agency, to report the date of death and stop benefit payments.", links: [{ label: "Who to notify, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }] },
     { id: "poa", title: "A power of attorney does not survive the death", body: "Every power of attorney and every pre-death authorisation ends when the person dies. Your authority after death comes from the will and applicable estate law, and sometimes from a court grant. Institutions will ask you to prove that authority.", links: [] },
-    { id: "docs", title: "Proof of death", body: docs, links: p === "BC" ? [{ label: "B.C. death certificates", url: "https://www2.gov.bc.ca/gov/content/life-events/order-certificates-copies" }] : p === "AB" ? [{ label: "Alberta death certificates", url: "https://www.alberta.ca/order-death-certificate" }] : [] },
+    { id: "docs", title: "Proof of death", body: docs.body, links: docs.links },
     { id: "money", title: "The 60-day one", body: "Service Canada asks for the CPP death benefit application within 60 days of the death, on form ISP1200. The base amount is $2,500. A further $2,500 is added only where the person died before ever collecting a CPP retirement or disability pension and left no surviving spouse or common-law partner.", links: [{ label: "CPP amounts, on canada.ca", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/payment-amounts.html" }] },
     { id: "fraud", title: "Tell the credit bureaus", body: "Equifax and TransUnion should both be told so that new credit cannot easily be taken out in the name of the person who died.", links: [{ label: "Notifying a death, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }] },
     { id: "probate", title: probate.title, body: probate.body, links: probate.links },
@@ -2345,7 +2499,9 @@ function EstateFile() {
               h("div", { style: { marginTop: 6, color: T.inkSoft } },
                 province === "ON" ? t("Ontario's Estate Information Return is generally due within 180 calendar days after the estate certificate is issued.") :
                 province === "BC" ? t("B.C. normally requires the P1 notice and a wait of at least 21 days before the grant application is made.") :
-                t("Alberta non-contentious grants can use the Surrogate Digital Service or paper GA forms; the route depends on the application.")))
+                province === "AB" ? t("Alberta non-contentious grants can use the Surrogate Digital Service or paper GA forms; the route depends on the application.") :
+                province === "SK" ? t("Saskatchewan standard grant applications use a $200 Local Registrar filing fee plus a $7-per-$1,000-or-part probate levy; special small-estate procedures can differ.") :
+                t("Manitoba eliminated charges for probate and administration applications in 2020; Rule 74 forms still govern the court application.")))
           )
         : h("div", { style: { marginTop: 8 } },
             steps.map((r) => {
@@ -2506,7 +2662,7 @@ function EstateFile() {
 
   const provincePicker = (marginBottom = 14) => h("div", { style: { marginBottom } },
     h("div", { style: { ...labelStyle(), marginBottom: 6 } }, t("Estate province")),
-    h("div", { role: "group", "aria-label": t("Estate province"), style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 } },
+    h("div", { role: "group", "aria-label": t("Estate province"), style: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 } },
       PROVINCES.map((p) => h("button", {
         key: p.id,
         onClick: () => chooseProvince(p.id),
@@ -2526,24 +2682,90 @@ function EstateFile() {
     const hasInput = raw !== null && Number.isFinite(raw) && raw >= 0;
     const calc = hasInput ? calculateProbateFees(province, raw) : null;
     const p = provinceDef(province);
-    const sources = province === "ON"
-      ? [{ label: "Ontario Estate Administration Tax", url: "https://www.ontario.ca/page/estate-administration-tax" }]
-      : province === "BC"
-        ? [
-            { label: "B.C. Probate Fee Act", url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/00_99004_01" },
-            { label: "B.C. Supreme Court fees", url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/168_2009_06" }
-          ]
-        : [{ label: "Alberta court fees", url: "https://www.alberta.ca/court-fees" }];
-    const hint = province === "ON"
-      ? "Enter the estate value used for Ontario Estate Administration Tax. Which assets count is a legal question."
-      : province === "BC"
-        ? "Enter the estate value for the B.C. grant. The Probate Fee Act has its own definition of estate value; get advice if you are unsure what counts."
-        : "Enter the net value of property in Alberta used for the grant-fee bracket.";
-    const empty = province === "ON"
-      ? "Ontario: $0 on the first $50,000, then $15 per $1,000 or part above it; the estate value is rounded up to the next $1,000."
-      : province === "BC"
-        ? "B.C.: no Probate Fee Act fee at $25,000 or less. Above that the bands are $6 and $14 per $1,000 or part, plus a separate $200 court commencement fee above $25,000."
-        : "Alberta: the grant fee is a fixed bracket from $35 to $525, based on the net value of property in Alberta.";
+    const sourcesByProvince = {
+      ON: [{ label: "Ontario Estate Administration Tax", url: "https://www.ontario.ca/page/estate-administration-tax" }],
+      BC: [
+        { label: "B.C. Probate Fee Act", url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/00_99004_01" },
+        { label: "B.C. Supreme Court fees", url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/168_2009_06" }
+      ],
+      AB: [{ label: "Alberta court fees", url: "https://www.alberta.ca/court-fees" }],
+      SK: [{ label: "Saskatchewan probate fees", url: "https://sasklawcourts.ca/kings-bench/wills-and-estates/probating-an-estate/" }],
+      MB: [
+        { label: "Manitoba Court Services Fees Regulation", url: "https://web2.gov.mb.ca/laws/regs/current/150-2021.php" },
+        { label: "Manitoba probate-charge elimination notice", url: "https://www.manitobacourts.mb.ca/site/assets/files/1152/2020-11-06_notice_-_elimination_of_probate_charges.pdf" }
+      ]
+    };
+    const hintByProvince = {
+      ON: "Enter the estate value used for Ontario Estate Administration Tax. Which assets count is a legal question.",
+      BC: "Enter the estate value for the B.C. grant. The Probate Fee Act has its own definition of estate value; get advice if you are unsure what counts.",
+      AB: "Enter the net value of property in Alberta used for the grant-fee bracket.",
+      SK: "Enter the Saskatchewan estate value used for the standard probate levy. The government application guidance calculates the levy from Total Part 1 Assets on the Statement of Property; whether an asset belongs there is a legal question.",
+      MB: "Manitoba has no value-based probate application charge. Entering a value confirms the current $0 charge; separate court services can still have fees."
+    };
+    const emptyByProvince = {
+      ON: "Ontario: $0 on the first $50,000, then $15 per $1,000 or part above it; the estate value is rounded up to the next $1,000.",
+      BC: "B.C.: no Probate Fee Act fee at $25,000 or less. Above that the bands are $6 and $14 per $1,000 or part, plus a separate $200 court commencement fee above $25,000.",
+      AB: "Alberta: the grant fee is a fixed bracket from $35 to $525, based on the net value of property in Alberta.",
+      SK: "Saskatchewan standard grant application: $200 Local Registrar filing fee plus $7 per $1,000 or part. A separate $100 small-estate order may be available for qualifying estates with personal property of $25,000 or less and no Saskatchewan real property passing through the estate.",
+      MB: "Manitoba: charges for applications for probate or administration were eliminated effective November 6, 2020. Separate court services can still have fees."
+    };
+    const sources = sourcesByProvince[province] || sourcesByProvince.ON;
+    const hint = hintByProvince[province] || hintByProvince.ON;
+    const empty = emptyByProvince[province] || emptyByProvince.ON;
+
+    let resultCard = null;
+    if (hasInput && province === "ON") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 } },
+          h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Value, rounded up")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.rounded))),
+        h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 } },
+          h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Taxed above $50,000")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.taxable))),
+        h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estate Administration Tax")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))));
+    } else if (hasInput && province === "BC") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 8 } },
+          h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Probate Fee Act fee")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.probateFee))),
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 8 } },
+          h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Supreme Court commencement fee")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.courtFee))),
+        h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estimated court + probate fees")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("This total does not include a wills search, alias searches, optional courier charges, electronic-filing fees or other case-specific court charges.")));
+    } else if (hasInput && province === "AB") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Court fee for the grant")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("This is the published fee for issuing a grant of probate or administration based on the net value of property in Alberta. Other court services can have separate fees.")));
+    } else if (hasInput && province === "SK") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 8 } },
+          h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Probate levy")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.probateLevy))),
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 8 } },
+          h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Local Registrar filing fee")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.courtFee))),
+        h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estimated standard court + probate fees")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("This is the standard grant route only. It does not include the separate $25 Certificate of No Infants fee when requested. A qualifying small estate with personal property of $25,000 or less and no Saskatchewan real property passing through the estate can use a different $100 court-order route.")));
+    } else if (hasInput && province === "MB") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Probate / administration application charge")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("Manitoba eliminated charges relating to applications for probate or administration effective November 6, 2020. Separate court services such as caveats, searches and certified documents can still have fees. Estates of $10,000 or less may also qualify for the separate section 47 summary-administration procedure.")));
+    }
 
     return h("div", { style: { padding: 16 } },
       h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Work out the probate fee")),
@@ -2565,36 +2787,7 @@ function EstateFile() {
         ? h("div", { style: { padding: "14px 15px", borderRadius: 12, border: "1px solid " + T.line, background: T.card } },
             h("div", { style: { fontFamily: font.display, fontSize: fs(17), color: T.heading, marginBottom: 4 } }, t("Enter a value to see the fee")),
             h("div", { style: { fontSize: fs(12), color: T.inkSoft, lineHeight: 1.5 } }, t(empty)))
-        : province === "ON"
-          ? h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
-              h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 } },
-                h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Value, rounded up")),
-                h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.rounded))),
-              h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 } },
-                h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Taxed above $50,000")),
-                h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.taxable))),
-              h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline" } },
-                h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estate Administration Tax")),
-                h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))))
-          : province === "BC"
-            ? h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
-                h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 8 } },
-                  h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Probate Fee Act fee")),
-                  h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.probateFee))),
-                h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 8 } },
-                  h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Supreme Court commencement fee")),
-                  h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.courtFee))),
-                h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
-                  h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estimated court + probate fees")),
-                  h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
-                h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
-                  t("This total does not include a wills search, alias searches, optional courier charges, electronic-filing fees or other case-specific court charges.")))
-            : h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
-                h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
-                  h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Court fee for the grant")),
-                  h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
-                h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
-                  t("This is the published fee for issuing a grant of probate or administration based on the net value of property in Alberta. Other court services can have separate fees."))),
+        : resultCard,
 
       h("div", { style: { marginTop: 12, background: T.goldSoft, border: "1px solid " + T.gold, borderRadius: 10, padding: "11px 13px", fontSize: fs(11.5), color: T.ink, lineHeight: 1.55 } },
         h("b", null, t("This does not decide whether probate is needed or what value belongs in the calculation.")),
