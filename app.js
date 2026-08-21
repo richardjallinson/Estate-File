@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1C";
+const APP_VERSION = "v1D";
 
 // ---- Day and night.
 //
@@ -187,21 +187,34 @@ const MapleLeaf = (props) => h("svg", {
 // somebody what they qualify for; Service Canada and the CRA decide that.
 // What it fixes is the real problem: nobody tells a grieving family what
 // exists, and benefits do not come looking for people.
+const PROVINCES = [
+  { id: "ON", label: "Ontario", short: "ON" },
+  { id: "BC", label: "British Columbia", short: "B.C." },
+  { id: "AB", label: "Alberta", short: "AB" }
+];
+const normaliseProvinceId = (id) => {
+  const key = String(id || "ON").trim().toUpperCase();
+  return PROVINCES.some((p) => p.id === key) ? key : "ON";
+};
+const provinceDef = (id) => PROVINCES.find((p) => p.id === normaliseProvinceId(id)) || PROVINCES[0];
+
 const BENEFIT_CATEGORIES = [
   { id: "cpp", label: "From the Canada Pension Plan" },
   { id: "other", label: "Other federal support" },
-  { id: "prov", label: "Ontario",
-    note: "Provincial, not federal. Ontario only; other provinces run their own." }
+  { id: "prov", label: "Provincial estate information" }
 ];
+function benefitCategories(province) {
+  const p = provinceDef(province);
+  return BENEFIT_CATEGORIES.map((c) => c.id === "prov"
+    ? { ...c, label: p.label + " estate information", note: "Provincial rules differ across Canada. This section follows the estate province selected in the app." }
+    : c);
+}
 
-// Figures are the published 2026 amounts. The death benefit figure is the one
-// most guides get wrong: the base is $2,500, and the extra $2,500 applies only
-// in the narrow case set out below, which is why it is spelled out here rather
-// than advertised as "up to $5,000".
+// Figures are the published 2026 amounts. Provincial court fees and filing
+// rules below were checked against the official Ontario, B.C. and Alberta
+// sources in August 2026. They remain reference information, not legal advice.
 const RATES_READ = "August 2026";
 
-// Benefit-screen helpers. These are deliberately small and deterministic so
-// the Benefits tab cannot fail simply because a display helper is missing.
 function ratesAreStale() {
   const m = RATES_READ.match(/(\d{4})/);
   if (!m) return true;
@@ -213,9 +226,12 @@ function benefitLinkText(url) {
   let label = "Open official page";
   if (/canada\.ca/i.test(url)) label = "Open official Canada.ca page";
   else if (/ontario\.ca/i.test(url)) label = "Open official Ontario.ca page";
+  else if (/bclaws\.gov\.bc\.ca|gov\.bc\.ca/i.test(url)) label = "Open official B.C. page";
+  else if (/alberta\.ca|surrogate\.alberta\.ca/i.test(url)) label = "Open official Alberta page";
   return t(label) + (info.english ? t(" (page in English)") : "");
 }
-const BENEFITS = [
+
+const FEDERAL_BENEFITS = [
   { id: "death", cat: "cpp", name: "CPP death benefit",
     what: "A one-time payment to the estate, or to certain people if there is no estate. Apply on form ISP1200. Service Canada suggests applying within 60 days of the death.",
     rate: "$2,500. A further $2,500 only if the person died before ever collecting a CPP retirement or disability pension AND left no surviving spouse or common-law partner.",
@@ -239,16 +255,81 @@ const BENEFITS = [
   { id: "ei", cat: "other", name: "Employment Insurance",
     what: "If the person was receiving, or might have been eligible for, EI benefits, Service Canada can say what happens next and what they need.",
     rate: "The number is under Help, at the top of any screen.",
-    url: "https://www.canada.ca/en/services/life-events/death/notify.html" },
-  { id: "eat", cat: "prov", name: "Estate Administration Tax",
-    what: "Ontario's probate tax, paid to the court when you apply for a Certificate of Appointment of Estate Trustee. The Probate tab works out the figure from an estate value.",
-    rate: "Nothing on the first $50,000. $15 for every $1,000 above it.",
-    url: "https://www.ontario.ca/page/estate-administration-tax" },
-  { id: "eir", cat: "prov", name: "Estate Information Return",
-    what: "A separate filing to the Ministry of Finance listing what the estate was worth. It is required even when no tax is owed and even for small estates. Missing the deadline is an offence under the Estate Administration Tax Act.",
-    rate: "Due within 180 calendar days of the certificate being issued.",
-    url: "https://www.ontario.ca/page/estate-administration-tax" }
+    url: "https://www.canada.ca/en/services/life-events/death/notify.html" }
 ];
+
+const PROVINCIAL_BENEFITS = {
+  ON: [
+    { id: "eat", cat: "prov", name: "Estate Administration Tax",
+      what: "Ontario's probate tax, paid to the court when you apply for an estate certificate. The Probate tab works out the figure from an estate value you enter.",
+      rate: "Nothing on the first $50,000. $15 for every $1,000 or part of $1,000 above it.",
+      url: "https://www.ontario.ca/page/estate-administration-tax" },
+    { id: "eir", cat: "prov", name: "Estate Information Return",
+      what: "A separate filing to the Ministry of Finance listing the estate information required by Ontario. It is generally required after an estate certificate is issued even when no Estate Administration Tax was payable.",
+      rate: "Due within 180 calendar days after the estate certificate is issued.",
+      url: "https://www.ontario.ca/page/estate-administration-tax" }
+  ],
+  BC: [
+    { id: "bcfees", cat: "prov", name: "Probate fee and court filing fee",
+      what: "B.C. charges a Probate Fee Act fee before a grant issues, plus a separate Supreme Court fee to commence the proceeding when the estate exceeds $25,000. The Probate tab calculates both from the value you enter.",
+      rate: "No Probate Fee Act fee at $25,000 or less. Above that: $6 per $1,000 or part from $25,000 to $50,000, then $14 per $1,000 or part above $50,000. The separate court commencement fee is $200 when the estate exceeds $25,000.",
+      url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/00_99004_01",
+      moreUrl: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/168_2009_06",
+      moreLabel: "Open official B.C. Supreme Court fees" },
+    { id: "bcwills", cat: "prov", name: "Wills search and P1 notice",
+      what: "A wills-notice search is part of the B.C. grant process even if you believe you have the original will. Before applying, the intended applicant gives the required Form P1 notice and applicable materials.",
+      rate: "The application cannot normally be made until at least 21 days after the required notice is delivered. A wills search is $20 for one name; alias and handling fees can also apply.",
+      url: "https://www2.gov.bc.ca/gov/content/life-events/death/after-death/wills-estates" },
+    { id: "bcforms", cat: "prov", name: "B.C. probate forms",
+      what: "B.C. uses the Supreme Court Civil Rules P-series probate forms. Form P2 is the Submission for Estate Grant; the other forms depend on the circumstances.",
+      rate: "Common forms include P1, P2, P3/P4 or P5, P9 and P10.",
+      url: "https://www2.gov.bc.ca/gov/content/justice/courthouse-services/documents-forms-records/court-forms/probate-forms" }
+  ],
+  AB: [
+    { id: "abfees", cat: "prov", name: "Alberta surrogate court fee",
+      what: "Alberta uses a fixed Court of King's Bench fee for issuing a grant of probate or administration, based on the net value of property in Alberta. The Probate tab works out the fee band.",
+      rate: "$35 up to $10,000; $135 over $10,000 to $25,000; $275 over $25,000 to $125,000; $400 over $125,000 to $250,000; $525 over $250,000.",
+      url: "https://www.alberta.ca/court-fees" },
+    { id: "absds", cat: "prov", name: "Surrogate Digital Service",
+      what: "The Court of King's Bench Surrogate Digital Service can be used for most non-contentious estate grant applications. A paper application using the GA forms remains available.",
+      rate: "Self-represented online applicants must meet the SDS requirements, including Alberta residency and being one of the applicants.",
+      url: "https://surrogate.alberta.ca/" },
+    { id: "abwill", cat: "prov", name: "Locating the will",
+      what: "Alberta does not have a general will registry. The executor may need to search the deceased's records, safe-deposit box, lawyer or other likely storage locations.",
+      rate: "No Alberta will-registry search is available for an ordinary will.",
+      url: "https://www.alberta.ca/deceased-persons-estates" }
+  ]
+};
+function benefitsForProvince(province) {
+  return FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS[normaliseProvinceId(province)] || []);
+}
+// Kept as a complete directory for exports/tests; the screen filters to the selected province.
+const BENEFITS = FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB);
+
+function calculateProbateFees(province, value) {
+  const p = normaliseProvinceId(province);
+  const raw = Number(value);
+  if (!Number.isFinite(raw) || raw < 0) return null;
+  if (p === "ON") {
+    const rounded = Math.ceil(raw / 1000) * 1000;
+    const taxable = Math.max(0, rounded - 50000);
+    const tax = (taxable / 1000) * 15;
+    return { province: p, value: raw, rounded, taxable, tax, total: tax };
+  }
+  if (p === "BC") {
+    const firstBand = Math.min(Math.max(raw - 25000, 0), 25000);
+    const secondBand = Math.max(raw - 50000, 0);
+    const probateFee = Math.ceil(firstBand / 1000) * 6 + Math.ceil(secondBand / 1000) * 14;
+    const courtFee = raw > 25000 ? 200 : 0;
+    return { province: p, value: raw, probateFee, courtFee, total: probateFee + courtFee };
+  }
+  let courtFee = 35;
+  if (raw > 250000) courtFee = 525;
+  else if (raw > 125000) courtFee = 400;
+  else if (raw > 25000) courtFee = 275;
+  else if (raw > 10000) courtFee = 135;
+  return { province: p, value: raw, courtFee, total: courtFee };
+}
 
 // ---- The steps.
 //
@@ -315,18 +396,46 @@ const CONDITION_STATUSES = [
 ];
 
 // ---- Probate, as a tracked sequence.
-const REDRESS_LEVELS = [
-  { id: "prep", short: "Preparation", label: "Getting the application ready",
-    blurb: "The original will, proof of death, the asset values, and the court forms. Most executors spend the first month here." },
-  { id: "filed", short: "Filed", label: "Application filed with the court",
-    blurb: "Submitted to the Superior Court of Justice with the Estate Administration Tax paid." },
-  { id: "certificate", short: "Certificate", label: "Certificate of Appointment issued",
-    blurb: "The court has appointed you. Note the date it was ISSUED: the Estate Information Return is due 180 days from it." },
-  { id: "eir", short: "Return filed", label: "Estate Information Return filed",
-    blurb: "Filed with the Ministry of Finance. Required even where no tax was payable." },
-  { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
-    blurb: "Form TX19, after every return is filed and assessed. Distributing before it arrives can leave you personally liable." }
-];
+const PROBATE_LEVELS = {
+  ON: [
+    { id: "prep", short: "Preparation", label: "Getting the application ready",
+      blurb: "The will, proof of death, asset values and court forms are being assembled." },
+    { id: "filed", short: "Filed", label: "Application filed with the court",
+      blurb: "Submitted to the Superior Court of Justice with any Estate Administration Tax payable." },
+    { id: "certificate", short: "Certificate", label: "Estate certificate issued",
+      blurb: "Record the issue date. Ontario's Estate Information Return clock runs from this date." },
+    { id: "provincial", short: "Return filed", label: "Estate Information Return filed",
+      blurb: "Ontario filing made to the Ministry of Finance, generally due within 180 calendar days after the estate certificate is issued." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  BC: [
+    { id: "prep", short: "Preparation", label: "Wills search and application preparation",
+      blurb: "Locate the will, obtain proof of death, complete the wills-notice search and assemble the required P-series forms and asset information." },
+    { id: "notice", short: "Notice", label: "Form P1 notice delivered",
+      blurb: "Deliver the required notice and applicable materials. The application normally cannot be made until at least 21 days later." },
+    { id: "filed", short: "Filed", label: "Estate grant application filed",
+      blurb: "The B.C. Supreme Court application has been submitted with the required probate materials and fees." },
+    { id: "certificate", short: "Grant", label: "Estate / representation grant issued",
+      blurb: "The Supreme Court has issued the grant establishing the personal representative's court authority." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  AB: [
+    { id: "prep", short: "Preparation", label: "Getting the grant application ready",
+      blurb: "Gather proof of death, the will if there is one, the estate inventory and the SDS or GA-form information." },
+    { id: "filed", short: "Filed", label: "Application submitted to the Court of King's Bench",
+      blurb: "Submitted online through the Surrogate Digital Service or by paper GA forms, depending on the application." },
+    { id: "notice", short: "Notice", label: "Required notices / service recorded",
+      blurb: "Record notices to beneficiaries, potential claimants and other interested parties as required for the application." },
+    { id: "certificate", short: "Grant", label: "Grant of probate or administration issued",
+      blurb: "The Court of King's Bench has issued the grant. SDS grants are issued digitally." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ]
+};
+function probateLevels(province) { return PROBATE_LEVELS[normaliseProvinceId(province)] || PROBATE_LEVELS.ON; }
+const REDRESS_LEVELS = PROBATE_LEVELS.ON;
 const REDRESS_OUTCOMES = [
   { id: "waiting", label: "Waiting", tone: "amber" },
   { id: "done", label: "Done", tone: "green" },
@@ -352,24 +461,32 @@ const REPRESENTATIVES = [
 // the one that saves the most running around: funeral directors will give you
 // as many original Statements of Death as you ask for, and every bank,
 // insurer and registry wants its own.
-const EVIDENCE_ITEMS = [
-  { id: "statement", label: "Statements of Death from the funeral director",
-    note: "Ask for several originals at the outset. Institutions each keep one." },
-  { id: "certificate", label: "The provincial death certificate",
-    note: "Ordered from ServiceOntario, and slower than the funeral director's statement. Start it early." },
-  { id: "will", label: "The original will",
-    note: "The original, not a copy. The court requires it." },
-  { id: "id", label: "Your own photo identification",
-    note: "Every institution will ask you to prove who you are as well." },
-  { id: "appointment", label: "Certificate of Appointment of Estate Trustee",
-    note: "If probate is needed. Some institutions will release nothing without it." },
-  { id: "sin", label: "The deceased's Social Insurance Number",
-    note: "The CRA and Service Canada both ask for it on the first call." },
-  { id: "values", label: "Written values for each asset at the date of death",
-    note: "Bank balances, appraisals, statements. Needed for probate, the Estate Information Return and the CRA." },
-  { id: "assessments", label: "Notices of Assessment and past returns",
-    note: "For the final return and the clearance certificate request." }
-];
+function evidenceItems(province) {
+  const p = normaliseProvinceId(province);
+  const certificateNote = p === "ON"
+    ? "Ontario death certificates are ordered through ServiceOntario. Keep the funeral director's proof of death too."
+    : p === "BC"
+      ? "B.C. Vital Statistics issues death certificates; they can be ordered online. Keep the funeral director's proof of death too."
+      : "Alberta death documents are ordered through a registry agent (or the approved out-of-province route). Keep the funeral director's proof of death too.";
+  const grantLabel = p === "ON" ? "Estate certificate / Certificate of Appointment"
+    : p === "BC" ? "Estate / representation grant" : "Grant of Probate or Administration";
+  const valuesNote = p === "ON"
+    ? "Bank balances, appraisals and statements. Used for the court application, Estate Information Return and CRA work."
+    : p === "BC"
+      ? "Bank balances, appraisals and statements. Used to support the B.C. grant/fee information and CRA work."
+      : "Bank balances, appraisals and statements. Alberta's grant fee is based on net property in Alberta; CRA work may need the broader estate records.";
+  return [
+    { id: "statement", label: "Statements of Death from the funeral director", note: "Ask for several originals at the outset. Institutions may each want proof of death." },
+    { id: "certificate", label: "The provincial death certificate", note: certificateNote },
+    { id: "will", label: "The original will", note: "Keep the original safe. Court submission and proof requirements differ by province." },
+    { id: "id", label: "Your own photo identification", note: "Institutions will ask you to prove who you are as well." },
+    { id: "appointment", label: grantLabel, note: "If a court grant is needed. Some institutions will release nothing without it." },
+    { id: "sin", label: "The deceased's Social Insurance Number", note: "The CRA and Service Canada both ask for it on the first call." },
+    { id: "values", label: "Written values for each asset at the date of death", note: valuesNote },
+    { id: "assessments", label: "Notices of Assessment and past returns", note: "For the final return and the clearance certificate request." }
+  ];
+}
+const EVIDENCE_ITEMS = evidenceItems("ON");
 
 // ---- Space to write.
 const STATEMENTS = [
@@ -406,102 +523,89 @@ const PSC_TABLE = [];
 // an estate is also grieving, and often doing it alone. Crisis and bereavement
 // support lead, then the free and low-cost help, then the numbers they will
 // actually have to ring.
-const HELP_SECTIONS = [
-  {
-    id: "crisis", tone: "urgent",
-    label: "If you need to talk to someone now",
-    note: "Free, confidential, and answered any hour of any day.",
-    items: [
-      { name: "9-8-8 Suicide Crisis Helpline", tel: "988",
-        detail: "Call or text, anywhere in Canada. For anyone in distress, not only for thoughts of suicide.",
-        alt: "Text 988" },
-      { name: "Emergency", tel: "911",
-        detail: "If someone is in immediate danger." }
-    ]
-  },
-  {
-    id: "grief", tone: "normal",
-    label: "Grief support",
-    note: "Bereavement support is a service in its own right, and most of it costs nothing.",
-    items: [
-      { name: "ConnexOntario", tel: "1-866-531-2600",
-        detail: "Free, confidential, around the clock. Connects you to mental health and bereavement services near you in Ontario.",
-        url: "https://www.connexontario.ca/" },
-      { name: "Your family doctor",
-        detail: "Grief that stops you sleeping, eating or functioning is a medical matter, not a weakness. It is worth saying out loud at an appointment." }
-    ]
-  },
-  {
-    id: "official", tone: "normal",
-    label: "The calls you will have to make",
-    note: "These are the published numbers. Have the Social Insurance Number in front of you before you dial.",
-    items: [
-      { name: "Service Canada, to cancel CPP and OAS", tel: "1-800-277-9914",
-        detail: "The first call to make. Payments after the month of death have to be repaid, and the demand lands on the executor.",
-        url: "https://www.canada.ca/en/services/life-events/death/notify.html" },
-      { name: "Canada Revenue Agency", tel: "1-800-959-8281",
-        detail: "Report the date of death, stop benefit payments, and ask what they need to recognise you as the legal representative.",
-        url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/life-events/what-when-someone-died.html" },
-      { name: "Employment Insurance", tel: "1-800-206-7218",
-        detail: "If the person was receiving or might have been eligible for EI." }
-    ]
-  },
-  {
-    id: "legal", tone: "normal",
-    label: "If you need legal help",
-    note: "Estate work is one of the places where paying for an hour of advice is often cheaper than the mistake it prevents.",
-    items: [
-      { name: "Law Society Referral Service",
-        detail: "A free half-hour consultation with a lawyer in the relevant field. Run by the Law Society of Ontario.",
-        url: "https://lso.ca/public-resources/finding-a-lawyer-or-paralegal/law-society-referral-service" },
-      { name: "Office of the Public Guardian and Trustee", tel: "1-800-366-0335",
-        detail: "Ontario. Steps in where there is no one else able or willing to administer an estate." }
-    ]
-  }
-];
+function helpSections(province) {
+  const p = normaliseProvinceId(province);
+  const grief = p === "ON" ? [
+    { name: "ConnexOntario", tel: "1-866-531-2600",
+      detail: "Free, confidential, around the clock. Connects you to mental-health and related supports in Ontario.", url: "https://www.connexontario.ca/" },
+    { name: "Your family doctor", detail: "If grief is stopping you sleeping, eating or functioning, ask for medical and local bereavement support." }
+  ] : p === "BC" ? [
+    { name: "BC Bereavement Helpline", tel: "1-877-779-2223",
+      detail: "Free and confidential. Connects people with grief resources across B.C.; published hours are Monday to Friday, 9 a.m. to 5 p.m.",
+      url: "https://www2.gov.bc.ca/gov/content/life-events/death/after-death/get-support" },
+    { name: "Your family doctor", detail: "Ask for local or online bereavement supports if grief is interfering with day-to-day functioning." }
+  ] : [
+    { name: "Health Link Alberta", tel: "811",
+      detail: "Call 811 for information about health services and grief or bereavement supports available in Alberta.",
+      url: "https://www.albertahealthservices.ca/info/Page13161.aspx" },
+    { name: "211 Alberta", tel: "211", detail: "Connects people with community services and supports in Alberta." }
+  ];
+  const legal = p === "ON" ? [
+    { name: "Law Society Referral Service",
+      detail: "A free initial consultation of up to 30 minutes with a lawyer or paralegal. Run by the Law Society of Ontario.",
+      url: "https://lso.ca/public-resources/finding-a-lawyer-or-paralegal/law-society-referral-service" },
+    { name: "Office of the Public Guardian and Trustee", tel: "1-800-366-0335",
+      detail: "Ontario public trustee and guardian information, including estate-related functions in qualifying circumstances." }
+  ] : p === "BC" ? [
+    { name: "B.C. Lawyer Referral Service", tel: "604-687-3221",
+      detail: "The Canadian Bar Association, B.C. Branch service provides a consultation of up to 15 minutes for free.",
+      url: "https://www2.gov.bc.ca/gov/content/family-social-supports/seniors/financial-legal-matters/hiring-a-lawyer" },
+    { name: "Public Guardian and Trustee of British Columbia", tel: "604-660-4444",
+      detail: "The PGT administers some deceased estates and has grant-review roles where minors or incapable adults are involved.",
+      url: "https://www.trustee.bc.ca/estates-personal-trusts" }
+  ] : [
+    { name: "Law Society of Alberta Lawyer Directory",
+      detail: "Use the online directory to search by location and practice area. The Law Society does not refer or endorse a particular lawyer.",
+      url: "https://www.lawsociety.ab.ca/public/findalawyer/" },
+    { name: "Alberta Public Trustee",
+      detail: "The Public Trustee will consider administering a solvent estate only in limited circumstances, including where a minor or represented-adult client is a beneficiary and no other person is administering.",
+      url: "https://www.alberta.ca/deceased-persons-estates" }
+  ];
+  return [
+    { id: "crisis", tone: "urgent", label: "If you need to talk to someone now", note: "Free, confidential, and answered any hour of any day.", items: [
+      { name: "9-8-8 Suicide Crisis Helpline", tel: "988", detail: "Call or text, anywhere in Canada. For anyone in distress, not only for thoughts of suicide.", alt: "Text 988" },
+      { name: "Emergency", tel: "911", detail: "If someone is in immediate danger." }
+    ] },
+    { id: "grief", tone: "normal", label: "Grief support", note: provinceDef(p).label + " resources, plus Canada-wide crisis help above.", items: grief },
+    { id: "official", tone: "normal", label: "The calls you will have to make", note: "These are federal numbers. Have the Social Insurance Number in front of you before you dial.", items: [
+      { name: "Service Canada, to cancel CPP and OAS", tel: "1-800-277-9914", detail: "Payments after the month of death have to be repaid, and the demand can land on the executor.", url: "https://www.canada.ca/en/services/life-events/death/notify.html" },
+      { name: "Canada Revenue Agency", tel: "1-800-959-8281", detail: "Report the date of death, stop benefit payments, and ask what they need to recognise you as the legal representative.", url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/life-events/what-when-someone-died.html" },
+      { name: "Employment Insurance", tel: "1-800-206-7218", detail: "If the person was receiving or might have been eligible for EI." }
+    ] },
+    { id: "legal", tone: "normal", label: "If you need legal help", note: "Estate law is provincial. These routes change with the estate province selected in Settings.", items: legal }
+  ];
+}
+const HELP_SECTIONS = helpSections("ON");
 
 // ---- The first two weeks.
 //
 // Not a complete checklist, and it says so. It covers the handful of things
 // that are time-sensitive or expensive to get wrong, each one verified against
 // the government page that says it.
-const GUIDE_SECTIONS = [
-  {
-    id: "first", title: "The first calls",
-    body: "Service Canada first, to stop CPP and OAS: benefits are payable for the month of the death and no further, and anything paid after that has to be repaid out of the estate. Then the Canada Revenue Agency, to report the date of death and stop benefit payments. In most provinces the Social Insurance Number is cancelled automatically by the provincial registrar, so that is one call you do not have to make.",
-    links: [{ label: "Who to notify, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }]
-  },
-  {
-    id: "poa", title: "A power of attorney does not survive the death",
-    body: "Every power of attorney and every pre-death authorisation ends the moment the person dies. If you were managing their affairs before, you are not authorised to continue on that basis. Your authority now comes from the will, or from the court, and institutions will ask you to prove it.",
-    links: []
-  },
-  {
-    id: "docs", title: "Statements of death, and how many",
-    body: "The funeral director provides Statements of Death, and you should ask for several originals: banks, insurers and registries each keep one. The provincial death certificate from ServiceOntario is a separate document, is what some institutions insist on, and has run to weeks or months at times. Order it early even if you think you will not need it.",
-    links: []
-  },
-  {
-    id: "money", title: "The 60-day one",
-    body: "Service Canada asks for the CPP death benefit application within 60 days of the death, on form ISP1200. The base amount is $2,500. A further $2,500 is added only where the person died before ever collecting a CPP retirement or disability pension and left no surviving spouse or common-law partner, which is narrower than most guides suggest.",
-    links: [{ label: "CPP amounts, on canada.ca", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/payment-amounts.html" }]
-  },
-  {
-    id: "fraud", title: "Tell the credit bureaus",
-    body: "Equifax and TransUnion should both be told, so that credit cannot be taken out in the name of the person who died. It is a short call, it is free, and almost nobody is told to do it.",
-    links: [{ label: "Notifying a death, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }]
-  },
-  {
-    id: "probate", title: "Two deadlines that follow the certificate",
-    body: "If probate is needed in Ontario, the Estate Information Return must reach the Ministry of Finance within 180 calendar days of the certificate being ISSUED, and it is required even where the estate is small enough that no tax is payable. Separately, the CRA clearance certificate on form TX19 comes only after every return is filed and assessed: distributing the estate before it arrives can leave you personally liable for what is owed.",
-    links: [{ label: "Estate Administration Tax, on ontario.ca", url: "https://www.ontario.ca/page/estate-administration-tax" }]
-  },
-  {
-    id: "notadvice", title: "None of this is advice",
-    body: "Whether an estate needs probate at all, how an asset passes, what the will means, and what should be filed are legal and tax questions. This app keeps your record of the process. It does not tell you what to do, and a half-hour with a lawyer through the Law Society Referral Service costs nothing.",
-    links: []
-  }
-];
+function guideSections(province) {
+  const p = normaliseProvinceId(province);
+  const docs = p === "ON"
+    ? "The funeral director provides proof-of-death documents. Ontario death certificates are ordered through ServiceOntario and some institutions insist on the provincial certificate. Order it early if you expect to need one."
+    : p === "BC"
+      ? "The funeral director provides proof-of-death documents. B.C. Vital Statistics also issues death certificates, which can be ordered online; the published regular-mail fee is $27. Executors often need proof of death for institutions and the grant process."
+      : "The funeral home registers the death in Alberta. A death certificate or other death document can then be ordered through a registry agent; the government fee is $20 and the registry agent adds its own service fee.";
+  const probate = p === "ON"
+    ? { title: "Ontario: the return after the certificate", body: "If an Ontario estate certificate is issued, the Estate Information Return is generally due within 180 calendar days after the certificate is ISSUED. Separately, the CRA clearance certificate on form TX19 comes only after every required return is filed and assessed: distributing too early can leave the legal representative personally liable.", links: [{ label: "Estate Administration Tax, on ontario.ca", url: "https://www.ontario.ca/page/estate-administration-tax" }] }
+    : p === "BC"
+      ? { title: "B.C.: wills search, notice, then the grant", body: "A B.C. grant application includes a wills-notice search even if you believe you have the original will. The intended applicant delivers Form P1 and applicable materials, and normally waits at least 21 days before applying. B.C. then charges the Probate Fee Act amount and, above $25,000, the separate Supreme Court commencement fee. CRA clearance remains a separate federal step near the end.", links: [{ label: "B.C. wills and estates", url: "https://www2.gov.bc.ca/gov/content/life-events/death/after-death/wills-estates" }] }
+      : { title: "Alberta: choose the grant application route", body: "Alberta applications go to the Court of King's Bench. Non-contentious grants can be prepared through the Surrogate Digital Service or with paper GA forms. Self-represented online applicants must meet SDS requirements. Alberta has no general will registry, so locating the original will is its own task. CRA clearance remains a separate federal step near the end.", links: [{ label: "Alberta surrogate applications", url: "https://www.alberta.ca/surrogate-applications-non-contentious-matters" }] };
+  return [
+    { id: "first", title: "The first calls", body: "Service Canada first, to stop CPP and OAS: benefits are payable for the month of the death and no further, and anything paid after that has to be repaid out of the estate. Then the Canada Revenue Agency, to report the date of death and stop benefit payments.", links: [{ label: "Who to notify, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }] },
+    { id: "poa", title: "A power of attorney does not survive the death", body: "Every power of attorney and every pre-death authorisation ends when the person dies. Your authority after death comes from the will and applicable estate law, and sometimes from a court grant. Institutions will ask you to prove that authority.", links: [] },
+    { id: "docs", title: "Proof of death", body: docs, links: p === "BC" ? [{ label: "B.C. death certificates", url: "https://www2.gov.bc.ca/gov/content/life-events/order-certificates-copies" }] : p === "AB" ? [{ label: "Alberta death certificates", url: "https://www.alberta.ca/order-death-certificate" }] : [] },
+    { id: "money", title: "The 60-day one", body: "Service Canada asks for the CPP death benefit application within 60 days of the death, on form ISP1200. The base amount is $2,500. A further $2,500 is added only where the person died before ever collecting a CPP retirement or disability pension and left no surviving spouse or common-law partner.", links: [{ label: "CPP amounts, on canada.ca", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/payment-amounts.html" }] },
+    { id: "fraud", title: "Tell the credit bureaus", body: "Equifax and TransUnion should both be told so that new credit cannot easily be taken out in the name of the person who died.", links: [{ label: "Notifying a death, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }] },
+    { id: "probate", title: probate.title, body: probate.body, links: probate.links },
+    { id: "notadvice", title: "None of this is advice", body: "Whether an estate needs probate at all, how an asset passes, what the will means, and what should be filed are legal and tax questions. This app keeps your record of the process. It does not tell you what to do; use the province-specific legal-help route under Help when you need advice.", links: [] }
+  ];
+}
+const GUIDE_SECTIONS = guideSections("ON");
+
 
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -515,11 +619,21 @@ const stageLabel = (id) => STAGES[stageIndex(id)].label;
 const bodyArea = (id) => BODY_AREAS.find((a) => a.id === id) || BODY_AREAS[BODY_AREAS.length - 1];
 const normaliseConditionStatusId = (id) => id === "unclaimed" ? "unsure" : (CONDITION_STATUSES.some((s) => s.id === id) ? id : "unsure");
 const conditionStatus = (id) => CONDITION_STATUSES.find((s) => s.id === normaliseConditionStatusId(id)) || CONDITION_STATUSES[3];
-const redressLevel = (id) => REDRESS_LEVELS.find((r) => r.id === id) || REDRESS_LEVELS[0];
+const redressLevel = (id, province = "ON") => {
+  const normalized = id === "eir" ? "provincial" : id;
+  const current = probateLevels(province);
+  const direct = current.find((r) => r.id === normalized);
+  if (direct) return direct;
+  for (const key of Object.keys(PROBATE_LEVELS)) {
+    const found = PROBATE_LEVELS[key].find((r) => r.id === normalized);
+    if (found) return found;
+  }
+  return current[0];
+};
 const redressOutcome = (id) => REDRESS_OUTCOMES.find((r) => r.id === id) || REDRESS_OUTCOMES[0];
 
 // ---- Dates. Everything is stored as YYYY-MM-DD, parsed as local rather than
-// UTC. new Date("2026-03-01") is midnight UTC, which in Ontario is the evening
+// UTC. new Date("2026-03-01") is midnight UTC, which in Canadian time zones west of UTC can be the evening
 // of February 28th, and that one-day slip would show up in every elapsed count. --
 function parseDate(s) {
   if (!s) return null;
@@ -650,7 +764,7 @@ const INTRO_CARDS = [
   {
     id: "help",
     title: t("Help is always one tap away"),
-    body: t("The Help button at the top of every screen has crisis and grief support first, then the government numbers you may need and a route to a free half-hour with an Ontario lawyer. Those details are kept in the app, so they are available with no signal.")
+    body: t("The Help button at the top of every screen has crisis and grief support first, then the government numbers you may need and province-specific legal-help routes. Choose the estate province in Settings so the local information is right.")
   },
   {
     id: "start",
@@ -848,6 +962,7 @@ function Field(props) {
 
 function EstateFile() {
   const [loaded, setLoaded] = useState(false);
+  const [province, setProvince] = useState("ON");
   const [claims, setClaims] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [contacts, setContacts] = useState([]);
@@ -1027,6 +1142,7 @@ function EstateFile() {
   useEffect(() => {
     const data = loadState();
     if (data) {
+      if (data.province) setProvince(normaliseProvinceId(data.province));
       if (Array.isArray(data.claims)) setClaims(data.claims);
       if (Array.isArray(data.reminders)) setReminders(data.reminders);
       if (Array.isArray(data.contacts)) setContacts(data.contacts);
@@ -1041,8 +1157,8 @@ function EstateFile() {
 
   useEffect(() => {
     if (!loaded) return;
-    saveState({ claims, reminders, contacts, redress, evidence, statements, conditions });
-  }, [claims, reminders, contacts, redress, evidence, statements, conditions, loaded]);
+    saveState({ province, claims, reminders, contacts, redress, evidence, statements, conditions });
+  }, [province, claims, reminders, contacts, redress, evidence, statements, conditions, loaded]);
 
   const claimById = (id) => claims.find((c) => c.id === id) || null;
 
@@ -1104,11 +1220,11 @@ function EstateFile() {
     redress.forEach((r) => {
       if (hit(r.notes, r.representative))
         out.push({ kind: "redress", id: r.id, claimId: r.claimId,
-          title: t(redressLevel(r.level).label), sub: r.notes || "", date: r.dateRequested });
+          title: t(redressLevel(r.level, province).label), sub: r.notes || "", date: r.dateRequested });
     });
 
     return out.map((r) => ({ ...r, claimName: r.claimId ? claimName(r.claimId) : null }));
-  }, [searchQ, claims, conditions, contacts, reminders, statements, redress, lang]);
+  }, [searchQ, claims, conditions, contacts, reminders, statements, redress, lang, province]);
 
 
   // Tapping a result puts you where the thing lives, rather than showing it in
@@ -1366,13 +1482,14 @@ function EstateFile() {
     // Suggest the stage after the furthest probate milestone already recorded.
     // Someone can still choose any stage manually, but the common path advances
     // in order instead of sending them back to the start.
-    const used = redress.filter((r) => r.claimId === claimId).map((r) => r.level);
+    const levels = probateLevels(province);
+    const used = redress.filter((r) => r.claimId === claimId).map((r) => r.level === "eir" ? "provincial" : r.level);
     const furthest = used.reduce((max, id) => {
-      const i = REDRESS_LEVELS.findIndex((l) => l.id === id);
+      const i = levels.findIndex((l) => l.id === id);
       return i > max ? i : max;
     }, -1);
-    const nextIdx = Math.min(furthest + 1, REDRESS_LEVELS.length - 1);
-    setRdLevel(REDRESS_LEVELS[nextIdx].id);
+    const nextIdx = Math.min(furthest + 1, levels.length - 1);
+    setRdLevel(levels[nextIdx].id);
     setRdRequested(todayISO()); setRdHeard(""); setRdDecided("");
     setRdOutcome("waiting"); setRdRep(REPRESENTATIVES[0]); setRdNotes("");
     setRedressOpen(true);
@@ -1380,7 +1497,7 @@ function EstateFile() {
   const openEditRedress = (r) => {
     setRdEditingId(r.id);
     setRdClaim(r.claimId || "");
-    setRdLevel(r.level);
+    setRdLevel(r.level === "eir" ? "provincial" : r.level);
     setRdRequested(r.dateRequested || todayISO());
     setRdHeard(r.dateHeard || "");
     setRdDecided(r.dateDecided || "");
@@ -1400,7 +1517,7 @@ function EstateFile() {
       flash(t("Updated"));
     } else {
       setRedress((cur) => cur.concat([{ id: uid(), ...rec }]));
-      flash(t(redressLevel(rdLevel).short) + t(" added"));
+      flash(t(redressLevel(rdLevel, province).short) + t(" added"));
     }
     setRedressOpen(false);
   };
@@ -1448,7 +1565,7 @@ function EstateFile() {
       L.push(t("PROBATE PROGRESS"));
       L.push(rule);
       steps.forEach((r) => {
-        L.push("  " + redressLevel(r.level).label);
+        L.push("  " + redressLevel(r.level, province).label);
         if (r.dateRequested) L.push(t("    Requested: ") + formatDate(r.dateRequested));
         if (r.dateHeard) L.push(t("    Heard: ") + formatDate(r.dateHeard));
         if (r.dateDecided) L.push(t("    Completed: ") + formatDate(r.dateDecided));
@@ -1490,8 +1607,9 @@ function EstateFile() {
     });
 
     const ev = evidence[c.id] || {};
-    const have = EVIDENCE_ITEMS.filter((i) => ev[i.id]);
-    const missing = EVIDENCE_ITEMS.filter((i) => !ev[i.id]);
+    const currentEvidenceItems = evidenceItems(province);
+    const have = currentEvidenceItems.filter((i) => ev[i.id]);
+    const missing = currentEvidenceItems.filter((i) => !ev[i.id]);
     if (have.length || missing.length) {
       L.push(t("EVIDENCE"));
       L.push(rule);
@@ -1533,6 +1651,7 @@ function EstateFile() {
     const L = [];
     L.push(t("MY ESTATE FILE"));
     L.push(rule);
+    L.push(t("Estate province: ") + provinceDef(province).label);
     L.push(t("Prepared from my own records on ") + formatDate(todayISO()) + ".");
     L.push(t("This is my personal record and may contain errors. The institutions' own records are authoritative."));
     L.push("");
@@ -1678,7 +1797,7 @@ function EstateFile() {
   };
 
   const openBackup = () => {
-    setBackupText(JSON.stringify({ claims, reminders, contacts, redress, evidence, statements, conditions }));
+    setBackupText(JSON.stringify({ province, claims, reminders, contacts, redress, evidence, statements, conditions }));
     setRestoreText("");
     setBackupOpen(true);
   };
@@ -1704,6 +1823,7 @@ function EstateFile() {
   const [fullBackupBusy, setFullBackupBusy] = useState(false);
 
   const applyRecord = (data) => {
+    if (data.province) setProvince(normaliseProvinceId(data.province));
     if (Array.isArray(data.claims)) setClaims(data.claims);
     if (Array.isArray(data.reminders)) setReminders(data.reminders);
     if (Array.isArray(data.contacts)) setContacts(data.contacts);
@@ -1720,7 +1840,7 @@ function EstateFile() {
         format: "estate-file-backup",
         version: 1,
         savedAt: todayISO(),
-        record: { claims, reminders, contacts, redress, evidence, statements, conditions },
+        record: { province, claims, reminders, contacts, redress, evidence, statements, conditions },
         documents: docs
       };
       const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
@@ -1796,6 +1916,7 @@ function EstateFile() {
   const runRestore = () => {
     try {
       const data = JSON.parse(restoreText);
+      if (data.province) setProvince(normaliseProvinceId(data.province));
       if (Array.isArray(data.claims)) setClaims(data.claims);
       if (Array.isArray(data.reminders)) setReminders(data.reminders);
       if (Array.isArray(data.contacts)) setContacts(data.contacts);
@@ -1833,9 +1954,9 @@ function EstateFile() {
       if (r.date) rows.push({ kind: "contact", date: r.date, claimId: r.claimId, title: r.who, detail: r.summary || "" });
     });
     redress.forEach((r) => {
-      if (r.dateRequested) rows.push({ kind: "redress", date: r.dateRequested, claimId: r.claimId, title: t(redressLevel(r.level).label), detail: t("Date started or filed") });
-      if (r.dateHeard) rows.push({ kind: "redress", date: r.dateHeard, claimId: r.claimId, title: t(redressLevel(r.level).label), detail: t("Date received or issued") });
-      if (r.dateDecided) rows.push({ kind: "outcome", date: r.dateDecided, claimId: r.claimId, title: t(redressOutcome(r.outcome).label), detail: t(redressLevel(r.level).label) });
+      if (r.dateRequested) rows.push({ kind: "redress", date: r.dateRequested, claimId: r.claimId, title: t(redressLevel(r.level, province).label), detail: t("Date started or filed") });
+      if (r.dateHeard) rows.push({ kind: "redress", date: r.dateHeard, claimId: r.claimId, title: t(redressLevel(r.level, province).label), detail: t("Date received or issued") });
+      if (r.dateDecided) rows.push({ kind: "outcome", date: r.dateDecided, claimId: r.claimId, title: t(redressOutcome(r.outcome).label), detail: t(redressLevel(r.level, province).label) });
     });
     reminders.forEach((r) => {
       if (r.date) rows.push({ kind: "reminder", date: r.date, claimId: r.claimId, title: r.label, detail: r.done ? t("Done") : "", done: r.done });
@@ -1847,7 +1968,7 @@ function EstateFile() {
     return rows
       .map((r) => ({ ...r, claimName: r.claimId ? nameOf(r.claimId) : null }))
       .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  }, [claims, contacts, redress, reminders, docMeta, lang]);
+  }, [claims, contacts, redress, reminders, docMeta, lang, province]);
 
   const sortedClaims = useMemo(() => claims.slice().sort((a, b) => {
     const da = a.dateApplied || "", db = b.dateApplied || "";
@@ -2142,12 +2263,12 @@ function EstateFile() {
       h("div", { style: { marginTop: 18, display: "flex", justifyContent: "space-between", alignItems: "baseline" } },
         h("div", { style: { fontFamily: font.display, fontSize: fs(17), color: T.heading } }, t("Evidence")),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft } },
-          EVIDENCE_ITEMS.filter((i) => (evidence[c.id] || {})[i.id]).length + t(" of ") + EVIDENCE_ITEMS.length)
+          evidenceItems(province).filter((i) => (evidence[c.id] || {})[i.id]).length + t(" of ") + evidenceItems(province).length)
       ),
       h("div", { style: { fontSize: fs(11), color: T.inkSoft, marginTop: 4, marginBottom: 8, lineHeight: 1.45 } },
         t("What institutions actually ask for. Not every estate needs every one, and a lawyer will tell you which yours does.")),
       h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 10, overflow: "hidden" } },
-        EVIDENCE_ITEMS.map((item, i) => {
+        evidenceItems(province).map((item, i) => {
           const on = !!(evidence[c.id] || {})[item.id];
           return h("button", {
             key: item.id,
@@ -2209,9 +2330,9 @@ function EstateFile() {
       steps.length === 0
         ? h("div", { style: { marginTop: 7 } },
             h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5, marginBottom: 9 } },
-              t("If this estate needs probate, you can track the main milestones here. Record the dates from the court, Ministry of Finance and CRA paperwork rather than relying on memory.")),
+              t("If this estate needs a court grant, you can track the main milestones here. The sequence changes with the estate province selected in Settings.")),
             h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 10, overflow: "hidden" } },
-              REDRESS_LEVELS.map((l, i) => h("div", {
+              probateLevels(province).map((l, i) => h("div", {
                 key: l.id,
                 style: { padding: "9px 12px", borderTop: i === 0 ? "none" : "1px solid " + T.line }
               },
@@ -2220,9 +2341,11 @@ function EstateFile() {
               ))
             ),
             h("div", { style: { background: T.goldSoft, border: "1px solid " + T.gold, borderRadius: 10, padding: "11px 13px", fontSize: fs(11.5), color: T.ink, lineHeight: 1.5, marginTop: 9 } },
-              t("Probate has a sequence and each step has its own paperwork. Record where yours has got to, and the dates, because two deadlines run from them."),
+              t("Probate and estate-grant procedures differ by province. Record the actual dates from your court and government paperwork."),
               h("div", { style: { marginTop: 6, color: T.inkSoft } },
-                t("The Estate Information Return is due 180 calendar days from the date the certificate was ISSUED, and the CRA clearance certificate comes only after every return is assessed.")))
+                province === "ON" ? t("Ontario's Estate Information Return is generally due within 180 calendar days after the estate certificate is issued.") :
+                province === "BC" ? t("B.C. normally requires the P1 notice and a wait of at least 21 days before the grant application is made.") :
+                t("Alberta non-contentious grants can use the Surrogate Digital Service or paper GA forms; the route depends on the application.")))
           )
         : h("div", { style: { marginTop: 8 } },
             steps.map((r) => {
@@ -2260,10 +2383,10 @@ function EstateFile() {
     h("div", { key: "t", style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } },
       rdEditingId ? t("Edit this step") : t("Add a probate step")),
     h("div", { key: "b", style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.45 } },
-      t("Your own record of the probate process. Nothing entered here is submitted to the court, the Ministry of Finance or the CRA.")),
-    h(Field, { key: "lv", label: t("Which stage"), hint: redressLevel(rdLevel).blurb },
+      t("Your own record of the probate process. Nothing entered here is submitted to a court, provincial authority or the CRA.")),
+    h(Field, { key: "lv", label: t("Which stage"), hint: redressLevel(rdLevel, province).blurb },
       h("select", { value: rdLevel, onChange: (e) => setRdLevel(e.currentTarget.value), style: { ...inputStyle(), width: "100%" } },
-        REDRESS_LEVELS.map((l) => h("option", { key: l.id, value: l.id }, t(l.label))))),
+        probateLevels(province).map((l) => h("option", { key: l.id, value: l.id }, t(l.label))))),
     h(Field, { key: "cl", label: t("Step") },
       h("select", { value: rdClaim, onChange: (e) => setRdClaim(e.currentTarget.value), style: { ...inputStyle(), width: "100%" } },
         [h("option", { key: "none", value: "" }, t("Not tied to a step"))].concat(
@@ -2369,69 +2492,124 @@ function EstateFile() {
     );
   };
 
-  // ---- Ontario's Estate Administration Tax, worked out.
+  // ---- Provincial probate / estate-grant fees.
   //
-  // The arithmetic is simple and the mistake people make is not: the tax is
-  // banded, not a flat percentage of everything, and the value is rounded up
-  // to the next thousand. Nothing on the first $50,000, then $15 for every
-  // $1,000 above it.
-  //
-  // It shows a figure. It does not decide whether probate is needed at all,
-  // which assets count towards the value, or what the estate is worth - all
-  // three are legal questions, and all three are said plainly below.
+  // The selected estate province changes the arithmetic and the process text.
+  // The calculator deliberately does not decide which assets belong in the
+  // entered value or whether a grant is required; those remain legal questions.
+  const chooseProvince = (id) => {
+    const next = normaliseProvinceId(id);
+    setProvince(next);
+    const levels = probateLevels(next);
+    if (!levels.some((l) => l.id === (rdLevel === "eir" ? "provincial" : rdLevel))) setRdLevel(levels[0].id);
+  };
+
+  const provincePicker = (marginBottom = 14) => h("div", { style: { marginBottom } },
+    h("div", { style: { ...labelStyle(), marginBottom: 6 } }, t("Estate province")),
+    h("div", { role: "group", "aria-label": t("Estate province"), style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 } },
+      PROVINCES.map((p) => h("button", {
+        key: p.id,
+        onClick: () => chooseProvince(p.id),
+        "aria-pressed": province === p.id ? "true" : "false",
+        style: {
+          padding: "10px 5px", borderRadius: 9, cursor: "pointer",
+          border: "1.5px solid " + (province === p.id ? T.primary : T.line),
+          background: province === p.id ? T.primary : T.btn2,
+          color: province === p.id ? "#fff" : T.ink,
+          fontFamily: font.body, fontSize: fs(11.5), fontWeight: province === p.id ? 800 : 700
+        }
+      }, p.short)))
+  );
+
   const estimateScreen = () => {
     const raw = estImpair === "" ? null : Number(estImpair);
-    const hasInput = raw !== null && isFinite(raw) && raw >= 0;
-    const rounded = hasInput ? Math.ceil(raw / 1000) * 1000 : null;
-    const taxable = rounded === null ? null : Math.max(0, rounded - 50000);
-    const tax = taxable === null ? null : (taxable / 1000) * 15;
+    const hasInput = raw !== null && Number.isFinite(raw) && raw >= 0;
+    const calc = hasInput ? calculateProbateFees(province, raw) : null;
+    const p = provinceDef(province);
+    const sources = province === "ON"
+      ? [{ label: "Ontario Estate Administration Tax", url: "https://www.ontario.ca/page/estate-administration-tax" }]
+      : province === "BC"
+        ? [
+            { label: "B.C. Probate Fee Act", url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/00_99004_01" },
+            { label: "B.C. Supreme Court fees", url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/168_2009_06" }
+          ]
+        : [{ label: "Alberta court fees", url: "https://www.alberta.ca/court-fees" }];
+    const hint = province === "ON"
+      ? "Enter the estate value used for Ontario Estate Administration Tax. Which assets count is a legal question."
+      : province === "BC"
+        ? "Enter the estate value for the B.C. grant. The Probate Fee Act has its own definition of estate value; get advice if you are unsure what counts."
+        : "Enter the net value of property in Alberta used for the grant-fee bracket.";
+    const empty = province === "ON"
+      ? "Ontario: $0 on the first $50,000, then $15 per $1,000 or part above it; the estate value is rounded up to the next $1,000."
+      : province === "BC"
+        ? "B.C.: no Probate Fee Act fee at $25,000 or less. Above that the bands are $6 and $14 per $1,000 or part, plus a separate $200 court commencement fee above $25,000."
+        : "Alberta: the grant fee is a fixed bracket from $35 to $525, based on the net value of property in Alberta.";
 
     return h("div", { style: { padding: 16 } },
-      h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Work out the probate tax")),
+      h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Work out the probate fee")),
       h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.5 } },
-        t("Ontario's Estate Administration Tax, from an estate value you enter. Arithmetic on the published rate, not a decision about what the estate is worth.")),
+        p.label + t(" rules from a value you enter. Arithmetic on published government rates, not a legal decision about what belongs in the estate.")),
+
+      provincePicker(14),
 
       h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px", marginBottom: 12 } },
-        h(Field, { label: t("Value of the estate"), hint: t("The total value of the assets that pass through the estate, at the date of death.") },
+        h(Field, { label: t("Estate value for this calculation"), hint: t(hint) },
           h("input", {
-            type: "number", inputMode: "numeric", min: "0", value: estImpair,
-            onInput: (e) => setEstImpair(e.currentTarget.value),
-            placeholder: "0",
+            type: "number", inputMode: "decimal", min: "0", value: estImpair,
+            onInput: (e) => setEstImpair(e.currentTarget.value), placeholder: "0",
             style: { ...inputStyle(), width: "100%" }
           }))
       ),
 
       !hasInput
         ? h("div", { style: { padding: "14px 15px", borderRadius: 12, border: "1px solid " + T.line, background: T.card } },
-            h("div", { style: { fontFamily: font.display, fontSize: fs(17), color: T.heading, marginBottom: 4 } }, t("Enter a value to see the tax")),
-            h("div", { style: { fontSize: fs(12), color: T.inkSoft, lineHeight: 1.5 } },
-              t("Nothing is payable on the first $50,000. Above that it is $15 for every $1,000, and the value is rounded up to the next $1,000.")))
-        : h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
-            h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 } },
-              h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Value, rounded up")),
-              h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(rounded))),
-            h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 } },
-              h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Taxed above $50,000")),
-              h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(taxable))),
-            h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline" } },
-              h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estate Administration Tax")),
-              h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(tax)))),
+            h("div", { style: { fontFamily: font.display, fontSize: fs(17), color: T.heading, marginBottom: 4 } }, t("Enter a value to see the fee")),
+            h("div", { style: { fontSize: fs(12), color: T.inkSoft, lineHeight: 1.5 } }, t(empty)))
+        : province === "ON"
+          ? h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+              h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 } },
+                h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Value, rounded up")),
+                h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.rounded))),
+              h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 } },
+                h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Taxed above $50,000")),
+                h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.taxable))),
+              h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline" } },
+                h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estate Administration Tax")),
+                h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))))
+          : province === "BC"
+            ? h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+                h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 8 } },
+                  h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Probate Fee Act fee")),
+                  h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.probateFee))),
+                h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 8 } },
+                  h("span", { style: { fontSize: fs(12), color: T.inkSoft } }, t("Supreme Court commencement fee")),
+                  h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.courtFee))),
+                h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+                  h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estimated court + probate fees")),
+                  h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+                h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+                  t("This total does not include a wills search, alias searches, optional courier charges, electronic-filing fees or other case-specific court charges.")))
+            : h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+                h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+                  h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Court fee for the grant")),
+                  h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+                h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+                  t("This is the published fee for issuing a grant of probate or administration based on the net value of property in Alberta. Other court services can have separate fees."))),
 
       h("div", { style: { marginTop: 12, background: T.goldSoft, border: "1px solid " + T.gold, borderRadius: 10, padding: "11px 13px", fontSize: fs(11.5), color: T.ink, lineHeight: 1.55 } },
-        h("b", null, t("This does not decide what the estate is worth.")),
-        t(" Which assets count towards the value, whether probate is needed at all, and how jointly held or beneficiary-designated property is treated are legal questions. Get them wrong and the figure above is wrong too. A half-hour with a lawyer, free through the Law Society Referral Service under Help, settles them.")),
+        h("b", null, t("This does not decide whether probate is needed or what value belongs in the calculation.")),
+        t(" Asset ownership, joint interests, beneficiary designations, debts and property outside the province can change the legal answer. Use the province-specific legal-help route under Help if you are unsure.")),
 
       h("div", { style: { marginTop: 10, fontSize: fs(10.5), color: T.inkSoft, lineHeight: 1.5 } },
-        t("The rate is the one published by Ontario for estate certificates applied for on or after 1 January 2020, read ") + RATES_READ + t(". Check ontario.ca before relying on it. The tax is paid to the court when the application is filed.")),
+        t("Rates and rules were checked in ") + RATES_READ + t(". Check the authoritative source") + (sources.length > 1 ? t("s") : "") + t(" before relying on the estimate: "),
+        sources.map((source, i) => h(React.Fragment, { key: source.url },
+          i ? t(" · ") : null,
+          h("a", { href: source.url, target: "_blank", rel: "noopener noreferrer", style: { color: T.blue, fontWeight: 700, textDecoration: "none" } }, source.label)
+        ))),
 
       h("div", { style: { marginTop: 14 } },
-        h("button", {
-          onClick: () => setGuideOpen(true),
-          style: {
-            width: "100%", padding: "13px", borderRadius: 10, border: "1px solid " + T.line,
-            background: T.btn2, color: T.ink, fontFamily: font.body, fontSize: fs(13), fontWeight: 700, cursor: "pointer"
-          }
-        }, t("The first two weeks \u203a")))
+        h("button", { onClick: () => setGuideOpen(true), style: { width: "100%", padding: "13px", borderRadius: 10, border: "1px solid " + T.line, background: T.btn2, color: T.ink, fontFamily: font.body, fontSize: fs(13), fontWeight: 700, cursor: "pointer" } },
+          t("The first two weeks ›")))
     );
   };
 
@@ -2441,7 +2619,7 @@ function EstateFile() {
   const bodyScreen = () => h("div", { style: { padding: 16 } },
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("The estate inventory")),
     h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 14, lineHeight: 1.5 } },
-      t("Every account, property and debt, what it is worth at the date of death, and how it passes. The court, the Ministry of Finance and the CRA each ask for this same list. Build it once here and you are not doing it three times from memory.")),
+      t("Every account, property and debt, what it is worth at the date of death, and how it passes. Courts, provincial estate processes and the CRA can all require parts of this same information. Build it once here instead of rebuilding it from memory.")),
 
     h("div", { style: { display: "grid", gridTemplateColumns: conditions.length ? "1fr 1fr" : "1fr", gap: 8, marginBottom: 14 } },
       h("button", {
@@ -2483,15 +2661,17 @@ function EstateFile() {
 
   const benefitsScreen = () => h("div", { style: { padding: 16 } },
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("What exists")),
-    h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 14, lineHeight: 1.5 } },
-      t("Benefits and support that may be available to a survivor or the estate, plus the calls that stop payments going out incorrectly. This does not decide eligibility; Service Canada and the CRA do.")),
+    h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.5 } },
+      t("Federal benefits apply across Canada. Provincial estate information below changes with the estate province selected here and in Settings.")),
+
+    provincePicker(14),
 
     ratesAreStale() ? h("div", {
       style: { background: "#FBEBE8", border: "1px solid " + T.red, borderRadius: 9, padding: "10px 12px", fontSize: fs(11.5), color: T.red, marginBottom: 14, lineHeight: 1.45 }
     }, t("These amounts were read in ") + RATES_READ + t(". Check the government pages before relying on them.")) : null,
 
-    BENEFIT_CATEGORIES.map((cat) => {
-      const items = BENEFITS.filter((b) => b.cat === cat.id);
+    benefitCategories(province).map((cat) => {
+      const items = benefitsForProvince(province).filter((b) => b.cat === cat.id);
       if (!items.length) return null;
       return h("div", { key: cat.id, style: { marginBottom: 18 } },
         h("div", { style: { fontFamily: font.display, fontSize: fs(17), color: T.heading, marginBottom: cat.note ? 3 : 7 } }, t(cat.label)),
@@ -2507,7 +2687,11 @@ function EstateFile() {
             h("a", {
               href: frUrl(b.url).url, target: "_blank", rel: "noopener noreferrer",
               style: { display: "inline-block", fontSize: fs(11), color: T.blue, fontWeight: 700, marginTop: 5, textDecoration: "none" }
-            }, benefitLinkText(b.url))
+            }, benefitLinkText(b.url)),
+            b.moreUrl ? h("a", {
+              href: b.moreUrl, target: "_blank", rel: "noopener noreferrer",
+              style: { display: "block", fontSize: fs(11), color: T.blue, fontWeight: 700, marginTop: 4, textDecoration: "none" }
+            }, t(b.moreLabel || "Open second official source")) : null
           ))
         )
       );
@@ -2528,7 +2712,7 @@ function EstateFile() {
       }
     },
       h("b", null, t("Every number in one place.")),
-      t(" Crisis and grief support any hour of the day, the numbers you will have to ring, and a free half-hour with a lawyer. Tap here, or Help at the top of any screen."))
+      t(" Crisis and grief support, the federal numbers you may need, and province-specific legal-help routes. Tap here, or Help at the top of any screen."))
   );
 
   const summarySheet = () => sheet(() => setSummaryOpen(false), [
@@ -2733,7 +2917,7 @@ function EstateFile() {
     h("div", { key: "b", style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 14, lineHeight: 1.45 } },
       t("The handful of things that are time-sensitive or expensive to get wrong. Every one checked against the government's own pages, the same standard as the Help numbers.")),
 
-    GUIDE_SECTIONS.map((s) => h("div", { key: s.id, style: { marginBottom: 14 } },
+    guideSections(province).map((s) => h("div", { key: s.id, style: { marginBottom: 14 } },
       h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 10, padding: "11px 13px" } },
         h("div", { style: { fontFamily: font.body, fontSize: fs(13), fontWeight: 800, color: T.ink } }, t(s.title)),
         h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginTop: 4, lineHeight: 1.55 } }, t(s.body)),
@@ -2810,7 +2994,7 @@ function EstateFile() {
     h("div", { key: "b", style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 14, lineHeight: 1.45 } },
       t("Tap any number to call it. These are kept in the app, so they are here with no signal and no data.")),
 
-    HELP_SECTIONS.map((sec) => h("div", { key: sec.id, style: { marginBottom: 16 } },
+    helpSections(province).map((sec) => h("div", { key: sec.id, style: { marginBottom: 16 } },
       h("div", {
         style: {
           fontFamily: font.display, fontSize: fs(16),
@@ -2882,6 +3066,11 @@ function EstateFile() {
   ]);
 
   const settingsScreen = () => h("div", { style: { padding: 16 } },
+    h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Estate province")),
+    h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 8, lineHeight: 1.45 } },
+      t("Choose the province whose estate rules apply. Federal CPP, OAS and CRA information stays Canada-wide; Probate, provincial Benefits, Help and the guide change with this choice.")),
+    provincePicker(24),
+
     // V1A is English-only; the language control returns when the estate-specific French translation is complete.
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Appearance")),
     h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 8, lineHeight: 1.45 } },
@@ -2974,7 +3163,7 @@ function EstateFile() {
 
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Getting help")),
     h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 10, padding: "12px 14px", fontSize: fs(12), color: T.ink, lineHeight: 1.55, marginBottom: 24 } },
-      t("The Law Society Referral Service gives you a free half-hour with a lawyer in the right field. For an estate, that half-hour is often the cheapest thing you will do."),
+      t("Legal-help routes differ by province. Help shows the current route for ") + provinceDef(province).label + t(", along with Canada-wide government numbers and grief supports."),
       h("div", { style: { marginTop: 8, color: T.inkSoft } }, t("All the numbers are under Help, at the top of any screen."))
     ),
 
@@ -2995,7 +3184,7 @@ function EstateFile() {
           t(t("The app's address. Open it in Safari on any phone and add it to the home screen.")))),
       t("Estate File is not affiliated with, endorsed by, or connected to any government department, court, law firm or accountancy practice. It reads no file and submits nothing on your behalf. It is a private place to keep your own record."),
       h("div", { style: { marginTop: 8 } },
-        t("The Probate tab is arithmetic on Ontario's published Estate Administration Tax rate, read in "), RATES_READ, t(". It shows what the tax would be on a value you enter. It does not decide what the estate is worth, whether probate is needed, or how any asset passes. Those are legal questions.")),
+        t("The Probate tab uses the published ") + provinceDef(province).label + t(" fee rules checked in ") + RATES_READ + t(". It shows arithmetic on a value you enter. It does not decide what the estate is worth, whether a court grant is needed, or how any asset passes. Those are legal questions.")),
       h("div", { style: { marginTop: 8 } },
         t("Nothing here is legal, tax or financial advice. Eligibility is decided by Service Canada and the CRA; what the will means and whether probate is needed are decided by a lawyer.")),
       h("div", { style: { marginTop: 8 } },
@@ -3215,7 +3404,7 @@ function EstateFile() {
     { id: "claims", label: t("Steps"),
       about: "Every notification and filing: where each one stands, your notes, documents, and every call logged." },
     { id: "body", label: t("Estate"),
-      about: "The estate inventory: every account, property and debt, what it is worth, and how it passes. The same list the court, the Ministry of Finance and the CRA each ask for." },
+      about: "The estate inventory: every account, property and debt, what it is worth, and how it passes. Courts, provincial filings and the CRA can all need parts of this same record." },
     { id: "reminders", label: dueCount ? t("Dates (") + dueCount + ")" : t("Dates"),
       about: "Dates you have been given: a 180-day return, a court date, a form due back. The app keeps the ones you enter; it does not work out your deadlines for you." },
     { id: "documents", label: t("Docs"),
@@ -3223,7 +3412,7 @@ function EstateFile() {
     { id: "benefits", label: t("Benefits"),
       about: "Benefits and support that may be available to a survivor or the estate, plus the calls that stop payments going out incorrectly. It does not decide eligibility; Service Canada and the CRA do." },
     { id: "estimate", label: t("Probate"),
-      about: "Ontario's Estate Administration Tax from an estate value, and the probate sequence with its deadlines. Arithmetic, not legal advice." },
+      about: provinceDef(province).label + " probate / grant fees from an estate value, plus the province-specific process tracker. Arithmetic, not legal advice." },
     { id: "settings", label: t("Settings"),
       about: "Appearance, text size, the PIN lock, backups, and printing your whole file." }
   ];
