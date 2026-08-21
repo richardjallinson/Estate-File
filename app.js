@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1A";
+const APP_VERSION = "v1B";
 
 // ---- Day and night.
 //
@@ -179,6 +179,22 @@ const BENEFIT_CATEGORIES = [
 // in the narrow case set out below, which is why it is spelled out here rather
 // than advertised as "up to $5,000".
 const RATES_READ = "August 2026";
+
+// Benefit-screen helpers. These are deliberately small and deterministic so
+// the Benefits tab cannot fail simply because a display helper is missing.
+function ratesAreStale() {
+  const m = RATES_READ.match(/(\d{4})/);
+  if (!m) return true;
+  return new Date().getFullYear() > Number(m[1]);
+}
+
+function benefitLinkText(url) {
+  const info = frUrl(url);
+  let label = "Open official page";
+  if (/canada\.ca/i.test(url)) label = "Open official Canada.ca page";
+  else if (/ontario\.ca/i.test(url)) label = "Open official Ontario.ca page";
+  return t(label) + (info.english ? t(" (page in English)") : "");
+}
 const BENEFITS = [
   { id: "death", cat: "cpp", name: "CPP death benefit",
     what: "A one-time payment to the estate, or to certain people if there is no estate. Apply on form ISP1200. Service Canada suggests applying within 60 days of the death.",
