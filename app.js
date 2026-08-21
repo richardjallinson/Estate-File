@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1E";
+const APP_VERSION = "v1F";
 
 // ---- Day and night.
 //
@@ -151,6 +151,11 @@ function money(value) {
   if (!Number.isFinite(n)) return "$0";
   return "$" + Math.round(n).toLocaleString("en-CA");
 }
+function moneyCents(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "$0.00";
+  return "$" + n.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 function statementDef(id) {
   return STATEMENTS.find((s) => s.id === id) || STATEMENTS[0];
 }
@@ -192,7 +197,9 @@ const PROVINCES = [
   { id: "BC", label: "British Columbia", short: "B.C." },
   { id: "AB", label: "Alberta", short: "AB" },
   { id: "SK", label: "Saskatchewan", short: "SK" },
-  { id: "MB", label: "Manitoba", short: "MB" }
+  { id: "MB", label: "Manitoba", short: "MB" },
+  { id: "NS", label: "Nova Scotia", short: "N.S." },
+  { id: "NB", label: "New Brunswick", short: "N.B." }
 ];
 const normaliseProvinceId = (id) => {
   const key = String(id || "ON").trim().toUpperCase();
@@ -214,7 +221,7 @@ function benefitCategories(province) {
 
 // Figures are the published 2026 amounts. Provincial court fees and filing
 // rules below were checked against the official Ontario, B.C., Alberta,
-// Saskatchewan and Manitoba sources in August 2026. They remain reference
+// Saskatchewan, Manitoba, Nova Scotia and New Brunswick sources in August 2026. They remain reference
 // information, not legal advice.
 const RATES_READ = "August 2026";
 
@@ -233,6 +240,8 @@ function benefitLinkText(url) {
   else if (/alberta\.ca|surrogate\.alberta\.ca/i.test(url)) label = "Open official Alberta page";
   else if (/saskatchewan\.ca|sasklawcourts\.ca|ehealthsask\.ca/i.test(url)) label = "Open official Saskatchewan page";
   else if (/gov\.mb\.ca|manitobacourts\.mb\.ca|web2\.gov\.mb\.ca|vitalstats\.gov\.mb\.ca/i.test(url)) label = "Open official Manitoba page";
+  else if (/novascotia\.ca|courts\.ns\.ca/i.test(url)) label = "Open official Nova Scotia page";
+  else if (/gnb\.ca|laws\.gnb\.ca/i.test(url)) label = "Open official New Brunswick page";
   return t(label) + (info.english ? t(" (page in English)") : "");
 }
 
@@ -345,13 +354,45 @@ const PROVINCIAL_BENEFITS = {
       url: "https://web2.gov.mb.ca/laws/statutes/ccsm/c290.php?lang=en",
       moreUrl: "https://web2.gov.mb.ca/laws/rules/forms_e.php",
       moreLabel: "Open current Manitoba Rule 74 forms" }
+  ],
+  NS: [
+    { id: "nsfees", cat: "prov", name: "Nova Scotia probate tax",
+      what: "Nova Scotia charges probate tax by estate-value band when a grant is issued. The Probate tab calculates the published tax from the value you enter.",
+      rate: "$85.60 up to $10,000; $215.20 over $10,000 to $25,000; $358.15 over $25,000 to $50,000; $1,002.65 over $50,000 to $100,000; above $100,000, $1,002.65 plus $16.95 for every $1,000 or part over $100,000.",
+      url: "https://www.courts.ns.ca/resources/public/costs-fees" },
+    { id: "nsforms", cat: "prov", name: "Nova Scotia probate forms and original will",
+      what: "Nova Scotia Probate Court applications use the forms in the Probate Court Practice, Procedure and Forms Regulations. A probate application uses Form 8; administration uses other forms depending on the circumstances. For probate filings, the original will is included as an exhibit to the required affidavit.",
+      rate: "Use the current Probate Court forms and requirements for the estate's circumstances.",
+      url: "https://www.courts.ns.ca/courts/probate-court" },
+    { id: "nspostgrant", cat: "prov", name: "Nova Scotia inventory and Royal Gazette notice",
+      what: "After a grant, the personal representative must file the estate inventory in Form 29 within 3 months. Estate notices are advertised in the Royal Gazette for 6 months before the estate proceeds to settlement and distribution.",
+      rate: "The current Royal Gazette Estate Notice advertising fee is $68.15 including HST. It is separate from the probate-tax estimate.",
+      url: "https://novascotia.ca/just/regulations/regs/probregs.htm",
+      moreUrl: "https://novascotia.ca/Just/Regulations/advertising.htm",
+      moreLabel: "Open Nova Scotia Royal Gazette estate-notice fees" }
+  ],
+  NB: [
+    { id: "nbfees", cat: "prov", name: "New Brunswick probate tax",
+      what: "New Brunswick charges probate tax on a grant of common probate or letters of administration. The rates changed for applications filed on or after June 12, 2026. The Probate tab calculates the current tax from the estate value you enter.",
+      rate: "$200 up to $20,000; from over $20,000 to $100,000, $200 plus $5 per $1,000 or part over $20,000; above $100,000, $600 plus $15 per $1,000 or part over $100,000.",
+      url: "https://www.gnb.ca/content/cour/en/probate-court.html",
+      moreUrl: "https://laws.gnb.ca/en/document/cs/P-17.1/",
+      moreLabel: "Open New Brunswick Probate Court Act" },
+    { id: "nbforms", cat: "prov", name: "New Brunswick probate forms and waiting periods",
+      what: "Letters Probate use Form 2A or 2B; administration with the will annexed uses Form 2C or 2D; administration without a will uses Form 2E or 2F. The current rules require 7 days to lapse after death before probate or administration with will annexed can be granted, and 14 days for administration of an intestate estate.",
+      rate: "A copy of the death certificate is accepted for the basic application; the original is not required. The court's current checklist also calls for detailed estate-value information.",
+      url: "https://www.gnb.ca/content/dam/courts/pdf/probate-court-cour-des-successions/general-check-list-for-probate-applications.pdf" },
+    { id: "nbcourt", cat: "prov", name: "New Brunswick Probate Court filing",
+      what: "An application can be presented to the Probate Office in the judicial district where the deceased lived at death or where the deceased had property. The Probate Court publishes locations, forms, a checklist and current filing information.",
+      rate: "Separate sundry court fees can apply in addition to probate tax; the basic calculator does not add case-specific fees.",
+      url: "https://www.gnb.ca/content/cour/en/probate-court.html" }
   ]
 };
 function benefitsForProvince(province) {
   return FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS[normaliseProvinceId(province)] || []);
 }
 // Kept as a complete directory for exports/tests; the screen filters to the selected province.
-const BENEFITS = FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB, PROVINCIAL_BENEFITS.SK, PROVINCIAL_BENEFITS.MB);
+const BENEFITS = FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB, PROVINCIAL_BENEFITS.SK, PROVINCIAL_BENEFITS.MB, PROVINCIAL_BENEFITS.NS, PROVINCIAL_BENEFITS.NB);
 
 function calculateProbateFees(province, value) {
   const p = normaliseProvinceId(province);
@@ -385,6 +426,20 @@ function calculateProbateFees(province, value) {
   }
   if (p === "MB") {
     return { province: p, value: raw, probateCharge: 0, total: 0 };
+  }
+  if (p === "NS") {
+    let probateTax = 85.60;
+    if (raw > 100000) probateTax = 1002.65 + Math.ceil((raw - 100000) / 1000) * 16.95;
+    else if (raw > 50000) probateTax = 1002.65;
+    else if (raw > 25000) probateTax = 358.15;
+    else if (raw > 10000) probateTax = 215.20;
+    return { province: p, value: raw, probateTax, total: probateTax };
+  }
+  if (p === "NB") {
+    let probateTax = 200;
+    if (raw > 100000) probateTax = 600 + Math.ceil((raw - 100000) / 1000) * 15;
+    else if (raw > 20000) probateTax = 200 + Math.ceil((raw - 20000) / 1000) * 5;
+    return { province: p, value: raw, probateTax, total: probateTax };
   }
   return null;
 }
@@ -514,6 +569,30 @@ const PROBATE_LEVELS = {
       blurb: "The Court of King's Bench has issued the grant establishing the personal representative's court authority." },
     { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
       blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  NS: [
+    { id: "prep", short: "Preparation", label: "Getting the Probate Court application ready",
+      blurb: "Gather proof of death, estate values, the current Probate Court forms and the original will if applying for probate." },
+    { id: "filed", short: "Filed", label: "Application filed with the Nova Scotia Probate Court",
+      blurb: "Record the filing date, probate tax paid and any additional material requested by the registrar." },
+    { id: "certificate", short: "Grant", label: "Grant of Probate or Administration issued",
+      blurb: "The Probate Court has issued the grant establishing the personal representative's court authority." },
+    { id: "provincial", short: "Post-grant", label: "Inventory, notices and Royal Gazette work recorded",
+      blurb: "File Form 29 inventory within 3 months after the grant and record the required post-grant notices, including the Royal Gazette estate notice." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  NB: [
+    { id: "prep", short: "Preparation", label: "Getting the New Brunswick application ready",
+      blurb: "Choose the applicable 2A–2F application form, gather the will if there is one, proof of death and detailed estate-value information, and account for the 7-day or 14-day minimum before a grant can issue." },
+    { id: "filed", short: "Filed", label: "Application filed with the Probate Court",
+      blurb: "File in the judicial district where the deceased resided at death or where the deceased had property, with the applicable probate tax." },
+    { id: "notice", short: "Follow-up", label: "Court follow-up or additional material recorded",
+      blurb: "Record any affidavits, witness proof, inventory details, corrections or other material requested for the application." },
+    { id: "certificate", short: "Grant", label: "Letters Probate or Letters of Administration issued",
+      blurb: "The Probate Court has issued the grant establishing the personal representative's court authority." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
   ]
 };
 function probateLevels(province) { return PROBATE_LEVELS[normaliseProvinceId(province)] || PROBATE_LEVELS.ON; }
@@ -570,6 +649,16 @@ function evidenceItems(province) {
       certificate: "Manitoba death certificates are issued by the Vital Statistics Branch. The current regular certificate fee is $30. Keep the funeral director's proof of death too.",
       grant: "Grant of Probate or Letters of Administration",
       values: "Bank balances, appraisals and statements. Manitoba has no value-based probate charge, but Form 74B still records the inventory and valuation of the deceased's property for the court process."
+    },
+    NS: {
+      certificate: "Nova Scotia Vital Statistics issues death certificates. The current fee is $33 for a short form and $39.90 for a long form. Keep the funeral director's proof of death too.",
+      grant: "Grant of Probate or Administration",
+      values: "Bank balances, appraisals and statements used for the Probate Court inventory and probate-tax value. Nova Scotia law has specific inclusion and exclusion rules, so get legal advice if ownership is unclear."
+    },
+    NB: {
+      certificate: "New Brunswick Vital Statistics issues long-form death certificates. The current fee is $40 online or $45 in person or by mail. The Probate Court's basic checklist accepts a copy of the death certificate.",
+      grant: "Letters Probate or Letters of Administration",
+      values: "Bank balances, appraisals and statements. The current Probate Court checklist calls for detailed estate-value information, and probate tax is based on the estate value used for the application."
     }
   }[p];
   return [
@@ -651,6 +740,14 @@ function helpSections(province) {
         detail: "Free 24/7 health information from nurses across Manitoba. Winnipeg callers can also use 204-788-8200.",
         url: "https://www.gov.mb.ca/health/access.html" },
       { name: "211 Manitoba", tel: "211", detail: "Free 24/7 connection to community services, including grief counselling and mental-health supports.", url: "https://mb.211.ca/" }
+    ],
+    NS: [
+      { name: "211 Nova Scotia", tel: "211", detail: "Free connection to community, social and support services across Nova Scotia.", url: "https://ns.211.ca/" },
+      { name: "Your family doctor", detail: "Ask for local or online bereavement supports if grief is interfering with day-to-day functioning." }
+    ],
+    NB: [
+      { name: "Tele-Care New Brunswick", tel: "811", detail: "24-hour nurse support and referrals to additional community services.", url: "https://www.gnb.ca/en/topic/health-wellness/accessing-health-care.html" },
+      { name: "211 New Brunswick", tel: "211", detail: "Free, confidential connection to human, social, community and government supports.", url: "https://nb.211.ca/" }
     ]
   };
   const legalByProvince = {
@@ -692,6 +789,22 @@ function helpSections(province) {
       { name: "Public Guardian and Trustee of Manitoba", tel: "1-800-282-8069",
         detail: "The PGT is an administrator of last resort for certain Manitoba estates where no one else is willing or able to act. Winnipeg: 204-945-2700.",
         url: "https://www.gov.mb.ca/publictrustee/deceased_estates.html" }
+    ],
+    NS: [
+      { name: "Legal Information Society of Nova Scotia", tel: "1-800-665-9779",
+        detail: "Legal information and a lawyer-referral route for Nova Scotia. Halifax: 902-455-3135.",
+        url: "https://www.legalinfo.org/" },
+      { name: "Public Trustee of Nova Scotia", tel: "902-424-7760",
+        detail: "The Public Trustee administers some deceased estates where there is no one willing or able to act.",
+        url: "https://novascotia.ca/just/pto/" }
+    ],
+    NB: [
+      { name: "Law Society of New Brunswick — Member Directory", tel: "506-458-8540",
+        detail: "Use the Law Society member directory to locate a New Brunswick lawyer, including wills-and-estates counsel.",
+        url: "https://lawsociety-barreau.nb.ca/" },
+      { name: "New Brunswick Probate Court",
+        detail: "The Probate Court publishes locations, forms, checklists and procedural information. Court staff can provide process information but not legal advice.",
+        url: "https://www.gnb.ca/content/cour/en/probate-court.html" }
     ]
   };
   return [
@@ -737,6 +850,14 @@ function guideSections(province) {
     MB: {
       body: "Manitoba Vital Statistics issues death certificates. The current regular issuance fee is $30 per document. Keep the funeral-home proof too, because banks, insurers and the court may ask for different forms of proof.",
       links: [{ label: "Manitoba death certificates", url: "https://vitalstats.gov.mb.ca/online_certificate_application.html" }]
+    },
+    NS: {
+      body: "Nova Scotia Vital Statistics issues death certificates. The current fee is $33 for a short form and $39.90 for a long form. Keep the funeral-home proof too because institutions and the Probate Court may ask for different evidence.",
+      links: [{ label: "Nova Scotia death-certificate fees", url: "https://www.novascotia.ca/vital-statistics-fees-certificates-licences-and-services" }]
+    },
+    NB: {
+      body: "New Brunswick Vital Statistics issues long-form death certificates. The current fee is $40 for an online application or $45 in person or by mail. The Probate Court's current basic checklist says a copy of the death certificate is accepted and the original is not required.",
+      links: [{ label: "New Brunswick death certificates", url: "https://www.gnb.ca/en/topic/family-home-community/vital-statistics/death-certificate.html" }]
     }
   };
   const probateByProvince = {
@@ -744,7 +865,9 @@ function guideSections(province) {
     BC: { title: "B.C.: wills search, notice, then the grant", body: "A B.C. grant application includes a wills-notice search even if you believe you have the original will. The intended applicant delivers Form P1 and applicable materials, and normally waits at least 21 days before applying. B.C. then charges the Probate Fee Act amount and, above $25,000, the separate Supreme Court commencement fee. CRA clearance remains a separate federal step near the end.", links: [{ label: "B.C. wills and estates", url: "https://www2.gov.bc.ca/gov/content/life-events/death/after-death/wills-estates" }] },
     AB: { title: "Alberta: choose the grant application route", body: "Alberta applications go to the Court of King's Bench. Non-contentious grants can be prepared through the Surrogate Digital Service or with paper GA forms. Self-represented online applicants must meet SDS requirements. Alberta has no general will registry, so locating the original will is its own task. CRA clearance remains a separate federal step near the end.", links: [{ label: "Alberta surrogate applications", url: "https://www.alberta.ca/surrogate-applications-non-contentious-matters" }] },
     SK: { title: "Saskatchewan: standard grant or small-estate route", body: "For a standard Saskatchewan grant application, the Local Registrar filing fee is $200 and the probate levy is $7 for every $1,000 or part of $1,000 of value passing through the estate. Saskatchewan's application guidance calculates the levy from Total Part 1 Assets in the Statement of Property. If personal property is $25,000 or less and no Saskatchewan real property will pass through the estate, a $100 small-estate order under Form 16-36 may be available instead. The Court also has a registrar-assisted process for qualifying estates of $15,000 or less. CRA clearance remains a separate federal step near the end.", links: [{ label: "Saskatchewan probate information", url: "https://sasklawcourts.ca/kings-bench/wills-and-estates/probating-an-estate/" }, { label: "Saskatchewan estates not exceeding $25,000", url: "https://www.saskatchewan.ca/residents/births-deaths-marriages-and-divorces/dealing-with-death/administering-the-estate-of-someone-whos-died/estates-not-exceeding-25000" }] },
-    MB: { title: "Manitoba: no value-based probate charge; Rule 74 still applies", body: "Manitoba eliminated charges relating to applications for probate or administration effective November 6, 2020. Probate work still uses Court of King's Bench Rule 74 forms, including Form 74A for a Request for Probate and Form 74B for the inventory and valuation. For estates whose total property does not exceed $10,000, section 47 also allows the court to use summary administration without a grant; the current form list includes Form 74FF for that request. The Probate Division in Winnipeg is the central registry. Separate court services, such as searches, caveats or certified documents, can still have fees. CRA clearance remains a separate federal step near the end.", links: [{ label: "Manitoba Probate Division", url: "https://www.manitobacourts.mb.ca/court-of-queens-bench/frequently-asked-questions/probate-division/" }, { label: "Manitoba Rule 74 forms", url: "https://web2.gov.mb.ca/laws/rules/forms_e.php" }, { label: "Manitoba Surrogate Practice Act", url: "https://web2.gov.mb.ca/laws/statutes/ccsm/c290.php?lang=en" }] }
+    MB: { title: "Manitoba: no value-based probate charge; Rule 74 still applies", body: "Manitoba eliminated charges relating to applications for probate or administration effective November 6, 2020. Probate work still uses Court of King's Bench Rule 74 forms, including Form 74A for a Request for Probate and Form 74B for the inventory and valuation. For estates whose total property does not exceed $10,000, section 47 also allows the court to use summary administration without a grant; the current form list includes Form 74FF for that request. The Probate Division in Winnipeg is the central registry. Separate court services, such as searches, caveats or certified documents, can still have fees. CRA clearance remains a separate federal step near the end.", links: [{ label: "Manitoba Probate Division", url: "https://www.manitobacourts.mb.ca/court-of-queens-bench/frequently-asked-questions/probate-division/" }, { label: "Manitoba Rule 74 forms", url: "https://web2.gov.mb.ca/laws/rules/forms_e.php" }, { label: "Manitoba Surrogate Practice Act", url: "https://web2.gov.mb.ca/laws/statutes/ccsm/c290.php?lang=en" }] },
+    NS: { title: "Nova Scotia: grant, inventory and six-month estate notice", body: "Nova Scotia Probate Court applications use the current provincial forms, and probate filings include the original will as an exhibit to the required affidavit. After a grant issues, the personal representative must file Form 29 inventory within 3 months. Estate notices are advertised in the Royal Gazette for 6 months before settlement and distribution; the current Estate Notice advertising fee is $68.15 including HST and is separate from the probate tax. CRA clearance remains a separate federal step near the end.", links: [{ label: "Nova Scotia Probate Court", url: "https://www.courts.ns.ca/courts/probate-court" }, { label: "Nova Scotia probate regulations", url: "https://novascotia.ca/just/regulations/regs/probregs.htm" }, { label: "Royal Gazette estate notices", url: "https://novascotia.ca/Just/Regulations/advertising.htm" }] },
+    NB: { title: "New Brunswick: current forms, waiting periods and 2026 probate tax", body: "New Brunswick Letters Probate use Form 2A or 2B; administration applications use Forms 2C through 2F depending on whether there is a will. The rules require 7 days to lapse after death before probate or administration with the will annexed can be granted, and 14 days before administration of an intestate estate can be granted. The current basic checklist accepts a copy of the death certificate and calls for detailed estate-value information. Probate-tax rates changed for applications filed on or after June 12, 2026. CRA clearance remains a separate federal step near the end.", links: [{ label: "New Brunswick Probate Court", url: "https://www.gnb.ca/content/cour/en/probate-court.html" }, { label: "New Brunswick probate checklist", url: "https://www.gnb.ca/content/dam/courts/pdf/probate-court-cour-des-successions/general-check-list-for-probate-applications.pdf" }, { label: "New Brunswick Probate Rules", url: "https://laws.gnb.ca/en/document/cr/84-9" }] }
   };
   const docs = docsByProvince[p] || docsByProvince.ON;
   const probate = probateByProvince[p] || probateByProvince.ON;
@@ -2501,11 +2624,13 @@ function EstateFile() {
                 province === "BC" ? t("B.C. normally requires the P1 notice and a wait of at least 21 days before the grant application is made.") :
                 province === "AB" ? t("Alberta non-contentious grants can use the Surrogate Digital Service or paper GA forms; the route depends on the application.") :
                 province === "SK" ? t("Saskatchewan standard grant applications use a $200 Local Registrar filing fee plus a $7-per-$1,000-or-part probate levy; special small-estate procedures can differ.") :
-                t("Manitoba eliminated charges for probate and administration applications in 2020; Rule 74 forms still govern the court application.")))
+                province === "MB" ? t("Manitoba eliminated charges for probate and administration applications in 2020; Rule 74 forms still govern the court application.") :
+                province === "NS" ? t("Nova Scotia requires Form 29 inventory within 3 months after the grant and uses a six-month Royal Gazette estate-notice period.") :
+                t("New Brunswick uses province-specific Probate Court forms, with a 7-day minimum before probate/administration with will annexed can be granted and 14 days for intestate administration.")))
           )
         : h("div", { style: { marginTop: 8 } },
             steps.map((r) => {
-              const lvl = redressLevel(r.level);
+              const lvl = redressLevel(r.level, province);
               const out = redressOutcome(r.outcome);
               const waiting = r.outcome === "waiting";
               return h("button", {
@@ -2693,6 +2818,14 @@ function EstateFile() {
       MB: [
         { label: "Manitoba Court Services Fees Regulation", url: "https://web2.gov.mb.ca/laws/regs/current/150-2021.php" },
         { label: "Manitoba probate-charge elimination notice", url: "https://www.manitobacourts.mb.ca/site/assets/files/1152/2020-11-06_notice_-_elimination_of_probate_charges.pdf" }
+      ],
+      NS: [
+        { label: "Nova Scotia Probate Court costs and fees", url: "https://www.courts.ns.ca/resources/public/costs-fees" },
+        { label: "Nova Scotia probate regulations", url: "https://novascotia.ca/just/regulations/regs/probregs.htm" }
+      ],
+      NB: [
+        { label: "New Brunswick Probate Court tax and fees", url: "https://www.gnb.ca/content/cour/en/probate-court.html" },
+        { label: "New Brunswick Probate Court Act", url: "https://laws.gnb.ca/en/document/cs/P-17.1/" }
       ]
     };
     const hintByProvince = {
@@ -2700,14 +2833,18 @@ function EstateFile() {
       BC: "Enter the estate value for the B.C. grant. The Probate Fee Act has its own definition of estate value; get advice if you are unsure what counts.",
       AB: "Enter the net value of property in Alberta used for the grant-fee bracket.",
       SK: "Enter the Saskatchewan estate value used for the standard probate levy. The government application guidance calculates the levy from Total Part 1 Assets on the Statement of Property; whether an asset belongs there is a legal question.",
-      MB: "Manitoba has no value-based probate application charge. Entering a value confirms the current $0 charge; separate court services can still have fees."
+      MB: "Manitoba has no value-based probate application charge. Entering a value confirms the current $0 charge; separate court services can still have fees.",
+      NS: "Enter the Nova Scotia estate value used for probate tax. The Probate Act and regulations determine what property counts; get advice if ownership or valuation is unclear.",
+      NB: "Enter the New Brunswick estate value used for probate tax. The calculator applies the rates effective June 12, 2026; whether particular property belongs in the application is a legal question."
     };
     const emptyByProvince = {
       ON: "Ontario: $0 on the first $50,000, then $15 per $1,000 or part above it; the estate value is rounded up to the next $1,000.",
       BC: "B.C.: no Probate Fee Act fee at $25,000 or less. Above that the bands are $6 and $14 per $1,000 or part, plus a separate $200 court commencement fee above $25,000.",
       AB: "Alberta: the grant fee is a fixed bracket from $35 to $525, based on the net value of property in Alberta.",
       SK: "Saskatchewan standard grant application: $200 Local Registrar filing fee plus $7 per $1,000 or part. A separate $100 small-estate order may be available for qualifying estates with personal property of $25,000 or less and no Saskatchewan real property passing through the estate.",
-      MB: "Manitoba: charges for applications for probate or administration were eliminated effective November 6, 2020. Separate court services can still have fees."
+      MB: "Manitoba: charges for applications for probate or administration were eliminated effective November 6, 2020. Separate court services can still have fees.",
+      NS: "Nova Scotia: probate tax is charged by estate-value band. Above $100,000 it is $1,002.65 plus $16.95 for every $1,000 or part over $100,000. Royal Gazette advertising is a separate post-grant cost.",
+      NB: "New Brunswick (applications filed on or after June 12, 2026): $200 up to $20,000; then $5 per $1,000 or part over $20,000 through $100,000; above $100,000, $600 plus $15 per $1,000 or part over $100,000."
     };
     const sources = sourcesByProvince[province] || sourcesByProvince.ON;
     const hint = hintByProvince[province] || hintByProvince.ON;
@@ -2765,6 +2902,20 @@ function EstateFile() {
           h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("Manitoba eliminated charges relating to applications for probate or administration effective November 6, 2020. Separate court services such as caveats, searches and certified documents can still have fees. Estates of $10,000 or less may also qualify for the separate section 47 summary-administration procedure.")));
+    } else if (hasInput && province === "NS") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Nova Scotia probate tax")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, moneyCents(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("This is the published probate tax only. The required Royal Gazette Estate Notice currently costs $68.15 including HST and is a separate post-grant expense. Other case-specific court costs can also apply.")));
+    } else if (hasInput && province === "NB") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("New Brunswick probate tax")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("These are the rates for applications filed on or after June 12, 2026. Separate sundry Probate Court fees can apply depending on the filing.")));
     }
 
     return h("div", { style: { padding: 16 } },
