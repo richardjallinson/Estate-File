@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1B";
+const APP_VERSION = "v1C";
 
 // ---- Day and night.
 //
@@ -138,6 +138,26 @@ function getTextScale() { return TEXT_SCALE; }
 // Rounded to a tenth: sub-pixel font sizes make text render soft on some
 // devices, and there is no visual gain from the extra precision.
 const fs = (n) => Math.round(n * TEXT_SCALE * 10) / 10;
+
+// Small display helpers shared by screens. Keeping these as named functions
+// lets the test harness exercise them directly, so a missing helper cannot
+// turn a whole sheet or tab into a blank screen.
+function telHref(value) {
+  const digits = String(value || "").replace(/[^0-9+*#]/g, "");
+  return digits ? "tel:" + digits : "#";
+}
+function money(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "$0";
+  return "$" + Math.round(n).toLocaleString("en-CA");
+}
+function statementDef(id) {
+  return STATEMENTS.find((s) => s.id === id) || STATEMENTS[0];
+}
+function wordCount(value) {
+  const text = String(value || "").trim();
+  return text ? text.split(/\s+/).length : 0;
+}
 
 const LEAF_VIEWBOX = "148 115 108 115";
 const LEAF_PATH = "m201.9 116.1-9.1 17.4c-1 1.8-2.9 1.7-4.7.7l-6.6-3.4 4.9 26c1 4.8-2.3 4.8-4 2.7l-11.5-12.9-1.9 6.5c-.2.9-1.2 1.8-2.6 1.6l-14.5-3 3.8 13.9c.8 3.1 1.4 4.3-.8 5.1l-5.2 2.4 25 20.3c1 .8 1.5 2.2 1.1 3.5l-2.2 7.2c8.6-1 16.3-2.5 24.9-3.4.8-.1 2 1.2 2 2.1l-1.1 26.3h4.2l-.7-26.2c0-.9 1.1-2.3 1.9-2.2 8.6.9 16.3 2.4 24.9 3.4l-2.2-7.2c-.4-1.3.1-2.7 1.1-3.5l25-20.3-5.2-2.4c-2.2-.8-1.6-2-.8-5.1l3.8-13.9-14.5 3c-1.4.2-2.4-.7-2.6-1.6l-1.9-6.5-11.5 12.9c-1.7 2.1-5 2.1-4-2.7l4.9-26-6.6 3.4c-1.8 1-3.7 1.1-4.7-.7z";
