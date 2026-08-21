@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1F";
+const APP_VERSION = "v1G";
 
 // ---- Day and night.
 //
@@ -199,7 +199,9 @@ const PROVINCES = [
   { id: "SK", label: "Saskatchewan", short: "SK" },
   { id: "MB", label: "Manitoba", short: "MB" },
   { id: "NS", label: "Nova Scotia", short: "N.S." },
-  { id: "NB", label: "New Brunswick", short: "N.B." }
+  { id: "NB", label: "New Brunswick", short: "N.B." },
+  { id: "NL", label: "Newfoundland and Labrador", short: "N.L." },
+  { id: "PE", label: "Prince Edward Island", short: "P.E.I." }
 ];
 const normaliseProvinceId = (id) => {
   const key = String(id || "ON").trim().toUpperCase();
@@ -221,7 +223,7 @@ function benefitCategories(province) {
 
 // Figures are the published 2026 amounts. Provincial court fees and filing
 // rules below were checked against the official Ontario, B.C., Alberta,
-// Saskatchewan, Manitoba, Nova Scotia and New Brunswick sources in August 2026. They remain reference
+// Saskatchewan, Manitoba, Nova Scotia, New Brunswick, Newfoundland and Labrador, and Prince Edward Island sources in August 2026. They remain reference
 // information, not legal advice.
 const RATES_READ = "August 2026";
 
@@ -242,6 +244,10 @@ function benefitLinkText(url) {
   else if (/gov\.mb\.ca|manitobacourts\.mb\.ca|web2\.gov\.mb\.ca|vitalstats\.gov\.mb\.ca/i.test(url)) label = "Open official Manitoba page";
   else if (/novascotia\.ca|courts\.ns\.ca/i.test(url)) label = "Open official Nova Scotia page";
   else if (/gnb\.ca|laws\.gnb\.ca/i.test(url)) label = "Open official New Brunswick page";
+  else if (/court\.nl\.ca|gov\.nl\.ca|assembly\.nl\.ca/i.test(url)) label = "Open official Newfoundland and Labrador page";
+  else if (/princeedwardisland\.ca|courts\.pe\.ca/i.test(url)) label = "Open official Prince Edward Island page";
+  else if (/publiclegalinfo\.com/i.test(url)) label = "Open Public Legal Information page";
+  else if (/legalinfopei\.ca/i.test(url)) label = "Open Community Legal Information page";
   return t(label) + (info.english ? t(" (page in English)") : "");
 }
 
@@ -386,13 +392,43 @@ const PROVINCIAL_BENEFITS = {
       what: "An application can be presented to the Probate Office in the judicial district where the deceased lived at death or where the deceased had property. The Probate Court publishes locations, forms, a checklist and current filing information.",
       rate: "Separate sundry court fees can apply in addition to probate tax; the basic calculator does not add case-specific fees.",
       url: "https://www.gnb.ca/content/cour/en/probate-court.html" }
+  ],
+  NL: [
+    { id: "nlfees", cat: "prov", name: "Newfoundland and Labrador probate / administration court charge",
+      what: "A charge is payable when Letters of Probate or Administration, or a resealed foreign grant, is issued. The Probate tab calculates the published amount from the estate value entered from the inventory and valuation.",
+      rate: "$60 where the estate value does not exceed $1,000; above $1,000, $60 plus 0.6% of the portion over $1,000 ($0.60 per additional $100).",
+      url: "https://www.court.nl.ca/supreme/schedule-of-fees/",
+      moreUrl: "https://www.assembly.nl.ca/legislation/sr/statutes/s13-2.htm",
+      moreLabel: "Open Newfoundland and Labrador Services Charges Act" },
+    { id: "nlnnotice", cat: "prov", name: "Notice of Application and 5-day wait",
+      what: "The first step for Probate, Administration and Administration C.T.A. is to post a Notice of Application with the Supreme Court Registry. If the 5-day notice period passes with no caveat or previous grant, the applicant can proceed with the petition.",
+      rate: "The court directs applicants to confirm with the Registry after the 5-day notice period before proceeding.",
+      url: "https://www.court.nl.ca/supreme/rules-practice-notes-and-forms/civil-proceedings/probate-and-admin/" },
+    { id: "nlforms", cat: "prov", name: "Rule 56 forms, inventory and valuation",
+      what: "Newfoundland and Labrador uses Rule 56 estate forms. The petition is accompanied by an inventory and valuation listing property and assets of the deceased located in Newfoundland and Labrador; the inventory value is used to set the court charge.",
+      rate: "Common forms include 56.04A Notice of Application, 56.05A Petition and 56.10A Inventory and Valuation. Probate applications also include the will and Proof of Will.",
+      url: "https://www.court.nl.ca/supreme/rules-practice-notes-and-forms/civil-proceedings/probate-and-admin/" }
+  ],
+  PE: [
+    { id: "pefees", cat: "prov", name: "Prince Edward Island probate petition fee",
+      what: "P.E.I.'s Probate Act sets petition fees by the probate value of the estate. The Probate tab calculates the standard petition fee for probate or administration from the value entered.",
+      rate: "$50 up to $10,000; $100 from $10,001 to $25,000; $200 from $25,001 to $50,000; $400 from $50,001 to $100,000; above $100,000, $400 plus $4 per $1,000 or fraction over $100,000.",
+      url: "https://www.princeedwardisland.ca/en/legislation/probate-act" },
+    { id: "peforms", cat: "prov", name: "P.E.I. Rule 65 estate forms",
+      what: "Applications for Letters Probate or Letters of Administration are made by petition in the Supreme Court of Prince Edward Island, Estates Section. Rule 65 prescribes the forms used for the application.",
+      rate: "Form 65A is Petition for Probate, 65B is Administration with Will Annexed, 65C is Administration, 65E is Inventory of Estate and 65F is Proof of Will.",
+      url: "https://www.courts.pe.ca/forms" },
+    { id: "penotice", cat: "prov", name: "P.E.I. inventory, estate notice and beneficiary notice",
+      what: "The Probate Act requires an inventory before the grant. After probate or administration is granted, the Registrar publishes an estate notice in the Gazette calling for demands within six months, and the personal representative has beneficiary-notice duties.",
+      rate: "Where a beneficiary's address is known, notice of the grant is served within one month from the time the address is or becomes known. Special service rules apply in other situations.",
+      url: "https://www.princeedwardisland.ca/en/legislation/probate-act" }
   ]
 };
 function benefitsForProvince(province) {
   return FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS[normaliseProvinceId(province)] || []);
 }
 // Kept as a complete directory for exports/tests; the screen filters to the selected province.
-const BENEFITS = FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB, PROVINCIAL_BENEFITS.SK, PROVINCIAL_BENEFITS.MB, PROVINCIAL_BENEFITS.NS, PROVINCIAL_BENEFITS.NB);
+const BENEFITS = FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB, PROVINCIAL_BENEFITS.SK, PROVINCIAL_BENEFITS.MB, PROVINCIAL_BENEFITS.NS, PROVINCIAL_BENEFITS.NB, PROVINCIAL_BENEFITS.NL, PROVINCIAL_BENEFITS.PE);
 
 function calculateProbateFees(province, value) {
   const p = normaliseProvinceId(province);
@@ -440,6 +476,18 @@ function calculateProbateFees(province, value) {
     if (raw > 100000) probateTax = 600 + Math.ceil((raw - 100000) / 1000) * 15;
     else if (raw > 20000) probateTax = 200 + Math.ceil((raw - 20000) / 1000) * 5;
     return { province: p, value: raw, probateTax, total: probateTax };
+  }
+  if (p === "NL") {
+    const courtCharge = raw <= 1000 ? 60 : 60 + ((raw - 1000) * 0.006);
+    return { province: p, value: raw, courtCharge, total: courtCharge };
+  }
+  if (p === "PE") {
+    let petitionFee = 50;
+    if (raw > 100000) petitionFee = 400 + Math.ceil((raw - 100000) / 1000) * 4;
+    else if (raw > 50000) petitionFee = 400;
+    else if (raw > 25000) petitionFee = 200;
+    else if (raw > 10000) petitionFee = 100;
+    return { province: p, value: raw, petitionFee, total: petitionFee };
   }
   return null;
 }
@@ -593,6 +641,30 @@ const PROBATE_LEVELS = {
       blurb: "The Probate Court has issued the grant establishing the personal representative's court authority." },
     { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
       blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  NL: [
+    { id: "prep", short: "Preparation", label: "Getting the Rule 56 estate materials ready",
+      blurb: "Gather proof of death, the will and Proof of Will where applicable, Form 56.10A inventory and valuation, affidavits and the applicable petition materials." },
+    { id: "notice", short: "Notice", label: "Notice of Application posted",
+      blurb: "Post Form 56.04A with the Supreme Court Registry. After the 5-day notice period, confirm no caveat and no previous grant before proceeding." },
+    { id: "filed", short: "Filed", label: "Petition filed with the Supreme Court",
+      blurb: "File the applicable Rule 56 petition and inventory/valuation with the Registry, together with the will and proof materials where required." },
+    { id: "certificate", short: "Grant", label: "Letters of Probate or Administration issued",
+      blurb: "The Supreme Court has issued the grant. The estate-value court charge is based on the inventory and valuation filed with the application." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  PE: [
+    { id: "prep", short: "Preparation", label: "Getting the Rule 65 petition ready",
+      blurb: "Gather proof of death, the original will and proof where applicable, the inventory, and the Rule 65 petition and oath materials for the estate." },
+    { id: "filed", short: "Filed", label: "Petition filed with the Supreme Court Estates Section",
+      blurb: "File the applicable petition, including Form 65A for probate or the applicable administration form, with the inventory and standard petition fee." },
+    { id: "certificate", short: "Grant", label: "Letters Probate or Administration issued",
+      blurb: "The Supreme Court Estates Section has issued the grant establishing the personal representative's court authority." },
+    { id: "provincial", short: "Post-grant", label: "Estate and beneficiary notices recorded",
+      blurb: "The Registrar publishes the estate notice calling for demands within six months. Record the personal representative's beneficiary-notice service and dates as applicable." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
   ]
 };
 function probateLevels(province) { return PROBATE_LEVELS[normaliseProvinceId(province)] || PROBATE_LEVELS.ON; }
@@ -659,6 +731,16 @@ function evidenceItems(province) {
       certificate: "New Brunswick Vital Statistics issues long-form death certificates. The current fee is $40 online or $45 in person or by mail. The Probate Court's basic checklist accepts a copy of the death certificate.",
       grant: "Letters Probate or Letters of Administration",
       values: "Bank balances, appraisals and statements. The current Probate Court checklist calls for detailed estate-value information, and probate tax is based on the estate value used for the application."
+    },
+    NL: {
+      certificate: "Newfoundland and Labrador Vital Statistics issues long-form death certificates. There is no fee when the certificate is issued within the first year of death; after one year it is $35, or $30 online.",
+      grant: "Letters of Probate or Letters of Administration",
+      values: "Form 56.10A inventory and valuation lists the deceased's property and assets located in Newfoundland and Labrador. The total is used to set the estate-value court charge."
+    },
+    PE: {
+      certificate: "Prince Edward Island Vital Statistics issues death certificates. The current fee is $35 without cause of death or $50 with cause; eligibility rules apply to cause-of-death records.",
+      grant: "Letters Probate or Letters of Administration",
+      values: "Form 65E / the required inventory records the estate for the court process. P.E.I.'s standard petition fee is based on the Probate Act's probate value definition."
     }
   }[p];
   return [
@@ -748,6 +830,14 @@ function helpSections(province) {
     NB: [
       { name: "Tele-Care New Brunswick", tel: "811", detail: "24-hour nurse support and referrals to additional community services.", url: "https://www.gnb.ca/en/topic/health-wellness/accessing-health-care.html" },
       { name: "211 New Brunswick", tel: "211", detail: "Free, confidential connection to human, social, community and government supports.", url: "https://nb.211.ca/" }
+    ],
+    NL: [
+      { name: "Newfoundland and Labrador HealthLine", tel: "811", detail: "Available 24/7. HealthLine nurses listen, provide support and connect callers with health services; the provincial toll-free number is 1-888-709-2929.", url: "https://www.gov.nl.ca/hcs/findhealthservices/helplines/" },
+      { name: "Bridge the gapp", detail: "Online mental-health and addictions information, self-help resources and service connections for Newfoundland and Labrador.", url: "https://www.bridgethegapp.ca/" }
+    ],
+    PE: [
+      { name: "P.E.I. 811 Telehealth", tel: "811", detail: "A registered nurse is available 24 hours a day for non-emergency health information and guidance about provincial health services.", url: "https://www.princeedwardisland.ca/en/information/health-and-wellness/811-telehealth" },
+      { name: "211 P.E.I.", tel: "211", detail: "Free, confidential, 24/7 connection to community, social, government and non-urgent health services across the Island.", url: "https://www.princeedwardisland.ca/en/information/social-development-and-seniors/211-pei" }
     ]
   };
   const legalByProvince = {
@@ -805,6 +895,22 @@ function helpSections(province) {
       { name: "New Brunswick Probate Court",
         detail: "The Probate Court publishes locations, forms, checklists and procedural information. Court staff can provide process information but not legal advice.",
         url: "https://www.gnb.ca/content/cour/en/probate-court.html" }
+    ],
+    NL: [
+      { name: "Public Legal Information Association of NL", tel: "1-888-660-7788",
+        detail: "Legal information and Lawyer Referral Service. Registered referral lawyers provide an initial 30-minute consultation for $40 including tax. St. John's: 709-722-2643.",
+        url: "https://publiclegalinfo.com/legal-info/wills-and-estates/dying-without-a-will/" },
+      { name: "Office of the Public Trustee — Newfoundland and Labrador", tel: "709-729-0850",
+        detail: "The Public Trustee can act as administrator of estates or executor under a will in qualifying circumstances.",
+        url: "https://www.gov.nl.ca/jps/department/branches/division/trustee/" }
+    ],
+    PE: [
+      { name: "Community Legal Information", tel: "902-892-0853",
+        detail: "P.E.I. legal navigation and lawyer referrals. The referral service can connect people with up to 45 minutes of low-cost legal advice. Toll-free: 1-800-240-9798.",
+        url: "https://legalinfopei.ca/" },
+      { name: "P.E.I. Public Trustee, Public and Official Guardian", tel: "902-368-6281",
+        detail: "An office of last resort that can administer or execute the estate of a P.E.I. resident where there is no one in a representative capacity who can do so.",
+        url: "https://www.princeedwardisland.ca/en/information/justice-and-public-safety/public-trustee-public-and-official-guardian" }
     ]
   };
   return [
@@ -858,6 +964,14 @@ function guideSections(province) {
     NB: {
       body: "New Brunswick Vital Statistics issues long-form death certificates. The current fee is $40 for an online application or $45 in person or by mail. The Probate Court's current basic checklist says a copy of the death certificate is accepted and the original is not required.",
       links: [{ label: "New Brunswick death certificates", url: "https://www.gnb.ca/en/topic/family-home-community/vital-statistics/death-certificate.html" }]
+    },
+    NL: {
+      body: "Newfoundland and Labrador Vital Statistics issues long-form death certificates. There is no fee for a death certificate issued within the first year of death. After one year, the fee is $35, or $30 for an online order. Keep the funeral-home proof too because institutions and the Supreme Court may ask for different evidence.",
+      links: [{ label: "Newfoundland and Labrador death certificates", url: "https://www.gov.nl.ca/gs/birth/death-certificate/" }]
+    },
+    PE: {
+      body: "Prince Edward Island Vital Statistics issues official death certificates. The current fee is $35 without cause of death and $50 with cause; access to cause-of-death information has eligibility requirements. Standard processing is approximately 8 business days plus postage.",
+      links: [{ label: "P.E.I. death certificates", url: "https://www.princeedwardisland.ca/en/service/apply-for-a-death-certificate" }, { label: "P.E.I. Vital Statistics fees", url: "https://www.princeedwardisland.ca/en/information/justice-and-public-safety/vital-statistics-service-fees" }]
     }
   };
   const probateByProvince = {
@@ -867,7 +981,9 @@ function guideSections(province) {
     SK: { title: "Saskatchewan: standard grant or small-estate route", body: "For a standard Saskatchewan grant application, the Local Registrar filing fee is $200 and the probate levy is $7 for every $1,000 or part of $1,000 of value passing through the estate. Saskatchewan's application guidance calculates the levy from Total Part 1 Assets in the Statement of Property. If personal property is $25,000 or less and no Saskatchewan real property will pass through the estate, a $100 small-estate order under Form 16-36 may be available instead. The Court also has a registrar-assisted process for qualifying estates of $15,000 or less. CRA clearance remains a separate federal step near the end.", links: [{ label: "Saskatchewan probate information", url: "https://sasklawcourts.ca/kings-bench/wills-and-estates/probating-an-estate/" }, { label: "Saskatchewan estates not exceeding $25,000", url: "https://www.saskatchewan.ca/residents/births-deaths-marriages-and-divorces/dealing-with-death/administering-the-estate-of-someone-whos-died/estates-not-exceeding-25000" }] },
     MB: { title: "Manitoba: no value-based probate charge; Rule 74 still applies", body: "Manitoba eliminated charges relating to applications for probate or administration effective November 6, 2020. Probate work still uses Court of King's Bench Rule 74 forms, including Form 74A for a Request for Probate and Form 74B for the inventory and valuation. For estates whose total property does not exceed $10,000, section 47 also allows the court to use summary administration without a grant; the current form list includes Form 74FF for that request. The Probate Division in Winnipeg is the central registry. Separate court services, such as searches, caveats or certified documents, can still have fees. CRA clearance remains a separate federal step near the end.", links: [{ label: "Manitoba Probate Division", url: "https://www.manitobacourts.mb.ca/court-of-queens-bench/frequently-asked-questions/probate-division/" }, { label: "Manitoba Rule 74 forms", url: "https://web2.gov.mb.ca/laws/rules/forms_e.php" }, { label: "Manitoba Surrogate Practice Act", url: "https://web2.gov.mb.ca/laws/statutes/ccsm/c290.php?lang=en" }] },
     NS: { title: "Nova Scotia: grant, inventory and six-month estate notice", body: "Nova Scotia Probate Court applications use the current provincial forms, and probate filings include the original will as an exhibit to the required affidavit. After a grant issues, the personal representative must file Form 29 inventory within 3 months. Estate notices are advertised in the Royal Gazette for 6 months before settlement and distribution; the current Estate Notice advertising fee is $68.15 including HST and is separate from the probate tax. CRA clearance remains a separate federal step near the end.", links: [{ label: "Nova Scotia Probate Court", url: "https://www.courts.ns.ca/courts/probate-court" }, { label: "Nova Scotia probate regulations", url: "https://novascotia.ca/just/regulations/regs/probregs.htm" }, { label: "Royal Gazette estate notices", url: "https://novascotia.ca/Just/Regulations/advertising.htm" }] },
-    NB: { title: "New Brunswick: current forms, waiting periods and 2026 probate tax", body: "New Brunswick Letters Probate use Form 2A or 2B; administration applications use Forms 2C through 2F depending on whether there is a will. The rules require 7 days to lapse after death before probate or administration with the will annexed can be granted, and 14 days before administration of an intestate estate can be granted. The current basic checklist accepts a copy of the death certificate and calls for detailed estate-value information. Probate-tax rates changed for applications filed on or after June 12, 2026. CRA clearance remains a separate federal step near the end.", links: [{ label: "New Brunswick Probate Court", url: "https://www.gnb.ca/content/cour/en/probate-court.html" }, { label: "New Brunswick probate checklist", url: "https://www.gnb.ca/content/dam/courts/pdf/probate-court-cour-des-successions/general-check-list-for-probate-applications.pdf" }, { label: "New Brunswick Probate Rules", url: "https://laws.gnb.ca/en/document/cr/84-9" }] }
+    NB: { title: "New Brunswick: current forms, waiting periods and 2026 probate tax", body: "New Brunswick Letters Probate use Form 2A or 2B; administration applications use Forms 2C through 2F depending on whether there is a will. The rules require 7 days to lapse after death before probate or administration with the will annexed can be granted, and 14 days before administration of an intestate estate can be granted. The current basic checklist accepts a copy of the death certificate and calls for detailed estate-value information. Probate-tax rates changed for applications filed on or after June 12, 2026. CRA clearance remains a separate federal step near the end.", links: [{ label: "New Brunswick Probate Court", url: "https://www.gnb.ca/content/cour/en/probate-court.html" }, { label: "New Brunswick probate checklist", url: "https://www.gnb.ca/content/dam/courts/pdf/probate-court-cour-des-successions/general-check-list-for-probate-applications.pdf" }, { label: "New Brunswick Probate Rules", url: "https://laws.gnb.ca/en/document/cr/84-9" }] },
+    NL: { title: "Newfoundland and Labrador: notice first, then the Rule 56 petition", body: "The Supreme Court says the first step for Probate or Administration is to post a Notice of Application with the Registry. After the 5-day notice period, confirm that no caveat has been entered and no previous grant made before proceeding. The petition includes Form 56.10A inventory and valuation of the deceased's Newfoundland and Labrador property and assets; that value sets the estate-value court charge. Probate applications also include the will and Proof of Will. Administration applications commonly require a bond with two sureties unless the Court dispenses with it. CRA clearance remains a separate federal step near the end.", links: [{ label: "Newfoundland and Labrador probate and administration", url: "https://www.court.nl.ca/supreme/rules-practice-notes-and-forms/civil-proceedings/probate-and-admin/" }, { label: "Newfoundland and Labrador Court service fees", url: "https://www.court.nl.ca/supreme/schedule-of-fees/" }] },
+    PE: { title: "P.E.I.: Rule 65 petition, inventory and post-grant notices", body: "P.E.I. applications for Letters Probate or Administration are made by petition in the Supreme Court Estates Section using Rule 65 forms. The Probate Act requires the inventory before the grant. After the grant, the Registrar publishes an estate notice in the Gazette calling for demands within six months, and the personal representative must serve notice of the grant on beneficiaries under the Act's service rules. CRA clearance remains a separate federal step near the end.", links: [{ label: "P.E.I. Probate Act", url: "https://www.princeedwardisland.ca/en/legislation/probate-act" }, { label: "P.E.I. Rule 65 estate forms", url: "https://www.courts.pe.ca/forms" }] }
   };
   const docs = docsByProvince[p] || docsByProvince.ON;
   const probate = probateByProvince[p] || probateByProvince.ON;
@@ -2626,7 +2742,9 @@ function EstateFile() {
                 province === "SK" ? t("Saskatchewan standard grant applications use a $200 Local Registrar filing fee plus a $7-per-$1,000-or-part probate levy; special small-estate procedures can differ.") :
                 province === "MB" ? t("Manitoba eliminated charges for probate and administration applications in 2020; Rule 74 forms still govern the court application.") :
                 province === "NS" ? t("Nova Scotia requires Form 29 inventory within 3 months after the grant and uses a six-month Royal Gazette estate-notice period.") :
-                t("New Brunswick uses province-specific Probate Court forms, with a 7-day minimum before probate/administration with will annexed can be granted and 14 days for intestate administration.")))
+                province === "NB" ? t("New Brunswick uses province-specific Probate Court forms, with a 7-day minimum before probate/administration with will annexed can be granted and 14 days for intestate administration.") :
+                province === "NL" ? t("Newfoundland and Labrador starts with a Notice of Application and 5-day notice period, then uses Rule 56 petition and inventory materials.") :
+                t("Prince Edward Island uses Rule 65 petitions and inventory requirements, followed by Gazette estate-notice and beneficiary-notice work after the grant.")))
           )
         : h("div", { style: { marginTop: 8 } },
             steps.map((r) => {
@@ -2826,6 +2944,14 @@ function EstateFile() {
       NB: [
         { label: "New Brunswick Probate Court tax and fees", url: "https://www.gnb.ca/content/cour/en/probate-court.html" },
         { label: "New Brunswick Probate Court Act", url: "https://laws.gnb.ca/en/document/cs/P-17.1/" }
+      ],
+      NL: [
+        { label: "Newfoundland and Labrador Court service fees", url: "https://www.court.nl.ca/supreme/schedule-of-fees/" },
+        { label: "Newfoundland and Labrador Services Charges Act", url: "https://www.assembly.nl.ca/legislation/sr/statutes/s13-2.htm" }
+      ],
+      PE: [
+        { label: "Prince Edward Island Probate Act", url: "https://www.princeedwardisland.ca/en/legislation/probate-act" },
+        { label: "Prince Edward Island Rule 65 estate forms", url: "https://www.courts.pe.ca/forms" }
       ]
     };
     const hintByProvince = {
@@ -2835,7 +2961,9 @@ function EstateFile() {
       SK: "Enter the Saskatchewan estate value used for the standard probate levy. The government application guidance calculates the levy from Total Part 1 Assets on the Statement of Property; whether an asset belongs there is a legal question.",
       MB: "Manitoba has no value-based probate application charge. Entering a value confirms the current $0 charge; separate court services can still have fees.",
       NS: "Enter the Nova Scotia estate value used for probate tax. The Probate Act and regulations determine what property counts; get advice if ownership or valuation is unclear.",
-      NB: "Enter the New Brunswick estate value used for probate tax. The calculator applies the rates effective June 12, 2026; whether particular property belongs in the application is a legal question."
+      NB: "Enter the New Brunswick estate value used for probate tax. The calculator applies the rates effective June 12, 2026; whether particular property belongs in the application is a legal question.",
+      NL: "Enter the Newfoundland and Labrador estate value used on Form 56.10A. The Court says the inventory value is used to set the estate-value court charge.",
+      PE: "Enter the P.E.I. probate value for the standard petition fee. The Probate Act defines probate value; get legal advice if you are unsure what property belongs in it."
     };
     const emptyByProvince = {
       ON: "Ontario: $0 on the first $50,000, then $15 per $1,000 or part above it; the estate value is rounded up to the next $1,000.",
@@ -2844,7 +2972,9 @@ function EstateFile() {
       SK: "Saskatchewan standard grant application: $200 Local Registrar filing fee plus $7 per $1,000 or part. A separate $100 small-estate order may be available for qualifying estates with personal property of $25,000 or less and no Saskatchewan real property passing through the estate.",
       MB: "Manitoba: charges for applications for probate or administration were eliminated effective November 6, 2020. Separate court services can still have fees.",
       NS: "Nova Scotia: probate tax is charged by estate-value band. Above $100,000 it is $1,002.65 plus $16.95 for every $1,000 or part over $100,000. Royal Gazette advertising is a separate post-grant cost.",
-      NB: "New Brunswick (applications filed on or after June 12, 2026): $200 up to $20,000; then $5 per $1,000 or part over $20,000 through $100,000; above $100,000, $600 plus $15 per $1,000 or part over $100,000."
+      NB: "New Brunswick (applications filed on or after June 12, 2026): $200 up to $20,000; then $5 per $1,000 or part over $20,000 through $100,000; above $100,000, $600 plus $15 per $1,000 or part over $100,000.",
+      NL: "Newfoundland and Labrador: $60 where the estate value does not exceed $1,000; above $1,000, $60 plus $0.60 for each additional $100 in value (0.6% of the portion over $1,000).",
+      PE: "Prince Edward Island: $50 up to $10,000; $100 to $25,000; $200 to $50,000; $400 to $100,000; above $100,000, $400 plus $4 per $1,000 or fraction over $100,000."
     };
     const sources = sourcesByProvince[province] || sourcesByProvince.ON;
     const hint = hintByProvince[province] || hintByProvince.ON;
@@ -2916,6 +3046,20 @@ function EstateFile() {
           h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("These are the rates for applications filed on or after June 12, 2026. Separate sundry Probate Court fees can apply depending on the filing.")));
+    } else if (hasInput && province === "NL") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Newfoundland and Labrador court charge")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, moneyCents(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("This is the estate-value charge for a grant or resealing. The Supreme Court's own calculator uses the total from Form 56.10A; other court services can have separate fees.")));
+    } else if (hasInput && province === "PE") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("P.E.I. standard probate petition fee")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("This is the standard petition fee only. The Probate Act has separate fees for some proceedings and an additional $1 fee for each renunciation or dedimus where probate value exceeds $1,000.")));
     }
 
     return h("div", { style: { padding: 16 } },

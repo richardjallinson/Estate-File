@@ -1,4 +1,4 @@
-/* Estate File v1F — language compatibility layer.
+/* Estate File v1G — language compatibility layer.
 
    V1A is intentionally English-only. A previous prototype exposed an
    incomplete French translation inherited from another project. Rather than
