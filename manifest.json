@@ -1,0 +1,21 @@
+{
+  "name": "Estate File",
+  "short_name": "Estate File",
+  "description": "A private, offline record for executors settling an estate. Track tasks, dates, documents, contacts, assets, benefits and probate progress on your device.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBF8F0",
+  "theme_color": "#141A33",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

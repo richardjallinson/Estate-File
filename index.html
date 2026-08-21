@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Estate File — An Executor's Own Record</title>
+<meta name="description" content="Estate File: a private, offline record for executors settling an estate. Track tasks, dates, documents, contacts, assets, benefits and probate progress on your device." />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#141A33" />
+<style>
+  html, body { margin: 0; padding: 0; background: #FBF8F0; overscroll-behavior-y: none; }
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+  input, select, button, textarea { font-family: inherit; }
+  button, select { color: inherit; -webkit-appearance: none; appearance: none; }
+  /* Visible keyboard focus. This app will be used by people with vision and
+     motor impairments, so the focus ring stays rather than being styled away. */
+  :focus-visible { outline: 2px solid #B8912F; outline-offset: 2px; }
+  .hscroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
+  .hscroll::-webkit-scrollbar { display: none; height: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- React and ReactDOM are bundled into the app itself (vendor/react.js).
+     app.js is plain JavaScript. Nothing is downloaded or interpreted at
+     runtime, which is what Apple guideline 2.5.2 requires. -->
+<script src="vendor/react.js"></script>
+<script src="strings.js"></script>
+<script src="app.js"></script>
+<script src="sw-register.js"></script>
+</body>
+</html>
