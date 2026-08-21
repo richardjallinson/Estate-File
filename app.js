@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1G";
+const APP_VERSION = "v1H";
 
 // ---- Day and night.
 //
@@ -201,7 +201,8 @@ const PROVINCES = [
   { id: "NS", label: "Nova Scotia", short: "N.S." },
   { id: "NB", label: "New Brunswick", short: "N.B." },
   { id: "NL", label: "Newfoundland and Labrador", short: "N.L." },
-  { id: "PE", label: "Prince Edward Island", short: "P.E.I." }
+  { id: "PE", label: "Prince Edward Island", short: "P.E.I." },
+  { id: "QC", label: "Quebec", short: "QC" }
 ];
 const normaliseProvinceId = (id) => {
   const key = String(id || "ON").trim().toUpperCase();
@@ -216,14 +217,16 @@ const BENEFIT_CATEGORIES = [
 ];
 function benefitCategories(province) {
   const p = provinceDef(province);
-  return BENEFIT_CATEGORIES.map((c) => c.id === "prov"
-    ? { ...c, label: p.label + " estate information", note: "Provincial rules differ across Canada. This section follows the estate province selected in the app." }
-    : c);
+  return BENEFIT_CATEGORIES.map((c) => {
+    if (c.id === "cpp" && p.id === "QC") return { ...c, label: "From the Québec Pension Plan" };
+    if (c.id === "prov") return { ...c, label: p.label + " estate information", note: "Provincial rules differ across Canada. This section follows the estate province selected in the app." };
+    return c;
+  });
 }
 
 // Figures are the published 2026 amounts. Provincial court fees and filing
 // rules below were checked against the official Ontario, B.C., Alberta,
-// Saskatchewan, Manitoba, Nova Scotia, New Brunswick, Newfoundland and Labrador, and Prince Edward Island sources in August 2026. They remain reference
+// Saskatchewan, Manitoba, Nova Scotia, New Brunswick, Newfoundland and Labrador, Prince Edward Island, and Quebec sources in August 2026. They remain reference
 // information, not legal advice.
 const RATES_READ = "August 2026";
 
@@ -246,6 +249,7 @@ function benefitLinkText(url) {
   else if (/gnb\.ca|laws\.gnb\.ca/i.test(url)) label = "Open official New Brunswick page";
   else if (/court\.nl\.ca|gov\.nl\.ca|assembly\.nl\.ca/i.test(url)) label = "Open official Newfoundland and Labrador page";
   else if (/princeedwardisland\.ca|courts\.pe\.ca/i.test(url)) label = "Open official Prince Edward Island page";
+  else if (/quebec\.ca|etatcivil\.gouv\.qc\.ca|revenuquebec\.ca|retraitequebec\.gouv\.qc\.ca/i.test(url)) label = "Open official Quebec page";
   else if (/publiclegalinfo\.com/i.test(url)) label = "Open Public Legal Information page";
   else if (/legalinfopei\.ca/i.test(url)) label = "Open Community Legal Information page";
   return t(label) + (info.english ? t(" (page in English)") : "");
@@ -276,6 +280,25 @@ const FEDERAL_BENEFITS = [
     what: "If the person was receiving, or might have been eligible for, EI benefits, Service Canada can say what happens next and what they need.",
     rate: "The number is under Help, at the top of any screen.",
     url: "https://www.canada.ca/en/services/life-events/death/notify.html" }
+];
+
+const QUEBEC_PENSION_BENEFITS = [
+  { id: "qppdeath", cat: "cpp", name: "QPP death benefit",
+    what: "A one-time benefit where the deceased contributed sufficiently to the Québec Pension Plan. During the first 60 days after death, priority can go to the person or charity that paid the funeral expenses and provides proof of payment; after that, heirs can qualify under the published rules.",
+    rate: "Maximum $2,500. The application can be filed up to 5 years after death, but the first 60 days affect payment priority.",
+    url: "https://www.retraitequebec.gouv.qc.ca/en/citizens/death/death-benefit-quebec-pension-plan" },
+  { id: "qppsurvivor", cat: "cpp", name: "QPP surviving spouse's pension",
+    what: "A taxable monthly pension for a qualifying surviving spouse where the deceased contributed sufficiently to the Québec Pension Plan. The amount depends on the deceased's contributions, the survivor's age and circumstances, and any retirement or disability pension already being received.",
+    rate: "2026 maximums vary by situation; the published maximum reaches $1,173.58 a month for several under-65 categories.",
+    url: "https://www.retraitequebec.gouv.qc.ca/en/citizens/death/surviving-spouse-pension" },
+  { id: "qpporphan", cat: "cpp", name: "QPP orphan's pension",
+    what: "A taxable monthly pension paid to the person who supports an eligible child of a deceased contributor. Under the QPP, the child must be under 18.",
+    rate: "$307.81 a month per eligible child in 2026. Apply promptly; retroactive payment is normally limited to 12 months.",
+    url: "https://www.retraitequebec.gouv.qc.ca/en/citizens/death/orphan-pension" },
+  { id: "qppcoord", cat: "cpp", name: "QPP and CPP contributions can interact",
+    what: "If the deceased also contributed to the Canada Pension Plan, Retraite Québec says those contributions are taken into account when determining whether a QPP pension or benefit may be payable and its amount. Use Retraite Québec or Service Canada for the person's actual contribution history.",
+    rate: "Do not assume that a Quebec death means only one plan matters; contribution history controls.",
+    url: "https://www.retraitequebec.gouv.qc.ca/en/programs/quebec-pension-plan" }
 ];
 
 const PROVINCIAL_BENEFITS = {
@@ -422,13 +445,43 @@ const PROVINCIAL_BENEFITS = {
       what: "The Probate Act requires an inventory before the grant. After probate or administration is granted, the Registrar publishes an estate notice in the Gazette calling for demands within six months, and the personal representative has beneficiary-notice duties.",
       rate: "Where a beneficiary's address is known, notice of the grant is served within one month from the time the address is or becomes known. Special service rules apply in other situations.",
       url: "https://www.princeedwardisland.ca/en/legislation/probate-act" }
+  ],
+  QC: [
+    { id: "qcwillsearch", cat: "prov", name: "Mandatory Quebec will search",
+      what: "A will search is mandatory when settling a Quebec succession. The single portal sends the request to both the Barreau du Québec and the Chambre des notaires du Québec, and two search certificates are produced.",
+      rate: "Do the search even when the family believes it already has the latest will. A handwritten or witnessed will may also need to be located outside the registries.",
+      url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/will-search" },
+    { id: "qcprobate", cat: "prov", name: "Quebec will verification",
+      what: "Quebec uses civil-law succession rules. A notarial will is an authentic act and does not need probate. A holograph will or a will made before witnesses must be probated after death by a notary or the Superior Court.",
+      rate: "There is no estate-value probate tax. Court or notary costs depend on the route used to verify a non-notarial will.",
+      url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/settlement/succession-will/probating" },
+    { id: "qcliquidator", cat: "prov", name: "Liquidator designation and inventory",
+      what: "The person settling a Quebec succession is the liquidator. The liquidator's designation must be registered in the RDPRM. The liquidator must make an inventory and publish a notice of closure in the RDPRM and in a local newspaper.",
+      rate: "The Quebec government currently lists a $59 RDPRM fee for registering the liquidator designation and a separate $59 fee for the notice of closure of inventory.",
+      url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/liquidator/appointment",
+      moreUrl: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/settlement/notice-closure",
+      moreLabel: "Open Quebec inventory-notice page" },
+    { id: "qcrenounce", cat: "prov", name: "Accepting or renouncing the succession",
+      what: "A successor generally has six months from the date of death to accept or renounce a Quebec succession. The period can be extended so the person has at least 60 days after closure of the inventory.",
+      rate: "Wait for the inventory information before making a decision where possible; actions can have legal consequences.",
+      url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/accepting-renouncing-succession" },
+    { id: "qcclearance", cat: "prov", name: "Revenu Québec authorization before distribution",
+      what: "Before distributing property owned by the deceased or post-death income of the succession, the liquidator must use Revenu Québec's process to obtain the certificate authorizing distribution. Federal CRA clearance remains a separate step.",
+      rate: "Form MR-14.A-V is the published notice used to request the Quebec distribution certificate.",
+      url: "https://www.revenuquebec.ca/en/online-services/forms-and-publications/current-details/mr-14-a-v/" }
   ]
 };
 function benefitsForProvince(province) {
-  return FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS[normaliseProvinceId(province)] || []);
+  const p = normaliseProvinceId(province);
+  if (p === "QC") {
+    return QUEBEC_PENSION_BENEFITS
+      .concat(FEDERAL_BENEFITS.filter((b) => b.cat !== "cpp"))
+      .concat(PROVINCIAL_BENEFITS.QC);
+  }
+  return FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS[p] || []);
 }
 // Kept as a complete directory for exports/tests; the screen filters to the selected province.
-const BENEFITS = FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB, PROVINCIAL_BENEFITS.SK, PROVINCIAL_BENEFITS.MB, PROVINCIAL_BENEFITS.NS, PROVINCIAL_BENEFITS.NB, PROVINCIAL_BENEFITS.NL, PROVINCIAL_BENEFITS.PE);
+const BENEFITS = FEDERAL_BENEFITS.concat(QUEBEC_PENSION_BENEFITS, PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB, PROVINCIAL_BENEFITS.SK, PROVINCIAL_BENEFITS.MB, PROVINCIAL_BENEFITS.NS, PROVINCIAL_BENEFITS.NB, PROVINCIAL_BENEFITS.NL, PROVINCIAL_BENEFITS.PE, PROVINCIAL_BENEFITS.QC);
 
 function calculateProbateFees(province, value) {
   const p = normaliseProvinceId(province);
@@ -489,6 +542,7 @@ function calculateProbateFees(province, value) {
     else if (raw > 10000) petitionFee = 100;
     return { province: p, value: raw, petitionFee, total: petitionFee };
   }
+  if (p === "QC") return { province: p, value: raw, valueBasedFee: null, total: null };
   return null;
 }
 
@@ -665,6 +719,18 @@ const PROBATE_LEVELS = {
       blurb: "The Registrar publishes the estate notice calling for demands within six months. Record the personal representative's beneficiary-notice service and dates as applicable." },
     { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
       blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  QC: [
+    { id: "prep", short: "Search", label: "Official proof of death and mandatory will search gathered",
+      blurb: "Obtain the civil-status document needed for the file and the two will-search certificates from the Barreau du Québec and Chambre des notaires registries." },
+    { id: "notice", short: "Will", label: "Will type and verification requirement confirmed",
+      blurb: "A notarial will does not need probate. A holograph or witnessed will must be probated by a notary or the Superior Court, with notice to successors unless an exemption applies." },
+    { id: "certificate", short: "Authority", label: "Liquidator authority established",
+      blurb: "Record the notarial will or completed verification of a non-notarial will and the document establishing who is acting as liquidator." },
+    { id: "provincial", short: "Inventory", label: "Liquidator designation and inventory notices completed",
+      blurb: "Register the liquidator in the RDPRM, complete the succession inventory, and record the RDPRM and newspaper notice of closure of inventory." },
+    { id: "clearance", short: "Clearance", label: "Quebec and federal clearance recorded before final distribution",
+      blurb: "Obtain Revenu Québec authorization before distributing succession property and the CRA clearance certificate before final distribution; then retain the final account and closure records." }
   ]
 };
 function probateLevels(province) { return PROBATE_LEVELS[normaliseProvinceId(province)] || PROBATE_LEVELS.ON; }
@@ -741,12 +807,17 @@ function evidenceItems(province) {
       certificate: "Prince Edward Island Vital Statistics issues death certificates. The current fee is $35 without cause of death or $50 with cause; eligibility rules apply to cause-of-death records.",
       grant: "Letters Probate or Letters of Administration",
       values: "Form 65E / the required inventory records the estate for the court process. P.E.I.'s standard petition fee is based on the Probate Act's probate value definition."
+    },
+    QC: {
+      certificate: "Quebec's Directeur de l'état civil issues death certificates and copies of the act of death. Current normal online fees are $38.50 for a certificate and $46.75 for a copy of an act; paper/mail fees are higher.",
+      grant: "Probated will / liquidator authority records",
+      values: "Keep a complete inventory of the succession's assets and debts. Quebec requires the liquidator to make an inventory and publish the required notice of closure."
     }
   }[p];
   return [
     { id: "statement", label: "Statements of Death from the funeral director", note: "Ask for several originals at the outset. Institutions may each want proof of death." },
     { id: "certificate", label: "The provincial death certificate", note: provinceData.certificate },
-    { id: "will", label: "The original will", note: "Keep the original safe. Court submission and proof requirements differ by province." },
+    { id: "will", label: "The original will", note: "Keep the original safe. Court submission and proof requirements differ by province; Quebec distinguishes notarial from non-notarial wills." },
     { id: "id", label: "Your own photo identification", note: "Institutions will ask you to prove who you are as well." },
     { id: "appointment", label: provinceData.grant, note: "If a court grant is needed. Some institutions will release nothing without it." },
     { id: "sin", label: "The deceased's Social Insurance Number", note: "The CRA and Service Canada both ask for it on the first call." },
@@ -838,6 +909,10 @@ function helpSections(province) {
     PE: [
       { name: "P.E.I. 811 Telehealth", tel: "811", detail: "A registered nurse is available 24 hours a day for non-emergency health information and guidance about provincial health services.", url: "https://www.princeedwardisland.ca/en/information/health-and-wellness/811-telehealth" },
       { name: "211 P.E.I.", tel: "211", detail: "Free, confidential, 24/7 connection to community, social, government and non-urgent health services across the Island.", url: "https://www.princeedwardisland.ca/en/information/social-development-and-seniors/211-pei" }
+    ],
+    QC: [
+      { name: "Info-Social 811", tel: "811", detail: "Choose option 2 for free, confidential psychosocial support. Quebec specifically lists bereavement as a reason to call, and the service is available 24/7 in most regions.", url: "https://www.quebec.ca/en/health/finding-a-resource/info-social-811" },
+      { name: "Quebec bereavement resources", detail: "The Quebec government lists additional services for people going through grief and bereavement.", url: "https://www.quebec.ca/en/family-and-support-for-individuals/death/better-cope-with-grief/seek-help-go-through-grief" }
     ]
   };
   const legalByProvince = {
@@ -911,6 +986,10 @@ function helpSections(province) {
       { name: "P.E.I. Public Trustee, Public and Official Guardian", tel: "902-368-6281",
         detail: "An office of last resort that can administer or execute the estate of a P.E.I. resident where there is no one in a representative capacity who can do so.",
         url: "https://www.princeedwardisland.ca/en/information/justice-and-public-safety/public-trustee-public-and-official-guardian" }
+    ],
+    QC: [
+      { name: "Quebec succession information", detail: "The Gouvernement du Québec succession pages explain will searches, verification of non-notarial wills, liquidator duties, inventory and distribution. For legal interpretation, contact a Quebec notary or lawyer.", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession" },
+      { name: "Quebec will-search portal", detail: "The mandatory search uses one portal for the Barreau du Québec and Chambre des notaires registries and produces two search certificates.", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/will-search" }
     ]
   };
   return [
@@ -919,8 +998,9 @@ function helpSections(province) {
       { name: "Emergency", tel: "911", detail: "If someone is in immediate danger." }
     ] },
     { id: "grief", tone: "normal", label: "Grief support", note: provinceDef(p).label + " resources, plus Canada-wide crisis help above.", items: griefByProvince[p] },
-    { id: "official", tone: "normal", label: "The calls you will have to make", note: "These are federal numbers. Have the Social Insurance Number in front of you before you dial.", items: [
-      { name: "Service Canada, to cancel CPP and OAS", tel: "1-800-277-9914", detail: "Payments after the month of death have to be repaid, and the demand can land on the executor.", url: "https://www.canada.ca/en/services/life-events/death/notify.html" },
+    { id: "official", tone: "normal", label: "The calls you will have to make", note: "Have the Social Insurance Number in front of you before you dial.", items: [
+      { name: p === "QC" ? "Service Canada — OAS and CPP if applicable" : "Service Canada, to cancel CPP and OAS", tel: "1-800-277-9914", detail: p === "QC" ? "Notify Service Canada about OAS and any CPP entitlement or payment that applies to the deceased's contribution history." : "Payments after the month of death have to be repaid, and the demand can land on the executor.", url: "https://www.canada.ca/en/services/life-events/death/notify.html" },
+      ...(p === "QC" ? [{ name: "Retraite Québec — QPP survivor benefits", tel: "1-800-463-5185", detail: "QPP death benefit, surviving spouse's pension and orphan's pension information. Retraite Québec's 2026 survivor-benefit form lists this toll-free number.", url: "https://www.retraitequebec.gouv.qc.ca/en/citizens/death" }] : []),
       { name: "Canada Revenue Agency", tel: "1-800-959-8281", detail: "Report the date of death, stop benefit payments, and ask what they need to recognise you as the legal representative.", url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/life-events/what-when-someone-died.html" },
       { name: "Employment Insurance", tel: "1-800-206-7218", detail: "If the person was receiving or might have been eligible for EI." }
     ] },
@@ -972,6 +1052,10 @@ function guideSections(province) {
     PE: {
       body: "Prince Edward Island Vital Statistics issues official death certificates. The current fee is $35 without cause of death and $50 with cause; access to cause-of-death information has eligibility requirements. Standard processing is approximately 8 business days plus postage.",
       links: [{ label: "P.E.I. death certificates", url: "https://www.princeedwardisland.ca/en/service/apply-for-a-death-certificate" }, { label: "P.E.I. Vital Statistics fees", url: "https://www.princeedwardisland.ca/en/information/justice-and-public-safety/vital-statistics-service-fees" }]
+    },
+    QC: {
+      body: "Quebec's Directeur de l'état civil issues death certificates and copies of the act of death. As of April 1, 2026, normal online processing is $38.50 for a certificate and $46.75 for a copy of an act. Some succession procedures, including Superior Court verification of a non-notarial will, call for the copy of the act of death.",
+      links: [{ label: "Quebec certificates and copies of acts", url: "https://www.etatcivil.gouv.qc.ca/en/Certificate-copy/Certificate-Copy.html" }]
     }
   };
   const probateByProvince = {
@@ -983,15 +1067,16 @@ function guideSections(province) {
     NS: { title: "Nova Scotia: grant, inventory and six-month estate notice", body: "Nova Scotia Probate Court applications use the current provincial forms, and probate filings include the original will as an exhibit to the required affidavit. After a grant issues, the personal representative must file Form 29 inventory within 3 months. Estate notices are advertised in the Royal Gazette for 6 months before settlement and distribution; the current Estate Notice advertising fee is $68.15 including HST and is separate from the probate tax. CRA clearance remains a separate federal step near the end.", links: [{ label: "Nova Scotia Probate Court", url: "https://www.courts.ns.ca/courts/probate-court" }, { label: "Nova Scotia probate regulations", url: "https://novascotia.ca/just/regulations/regs/probregs.htm" }, { label: "Royal Gazette estate notices", url: "https://novascotia.ca/Just/Regulations/advertising.htm" }] },
     NB: { title: "New Brunswick: current forms, waiting periods and 2026 probate tax", body: "New Brunswick Letters Probate use Form 2A or 2B; administration applications use Forms 2C through 2F depending on whether there is a will. The rules require 7 days to lapse after death before probate or administration with the will annexed can be granted, and 14 days before administration of an intestate estate can be granted. The current basic checklist accepts a copy of the death certificate and calls for detailed estate-value information. Probate-tax rates changed for applications filed on or after June 12, 2026. CRA clearance remains a separate federal step near the end.", links: [{ label: "New Brunswick Probate Court", url: "https://www.gnb.ca/content/cour/en/probate-court.html" }, { label: "New Brunswick probate checklist", url: "https://www.gnb.ca/content/dam/courts/pdf/probate-court-cour-des-successions/general-check-list-for-probate-applications.pdf" }, { label: "New Brunswick Probate Rules", url: "https://laws.gnb.ca/en/document/cr/84-9" }] },
     NL: { title: "Newfoundland and Labrador: notice first, then the Rule 56 petition", body: "The Supreme Court says the first step for Probate or Administration is to post a Notice of Application with the Registry. After the 5-day notice period, confirm that no caveat has been entered and no previous grant made before proceeding. The petition includes Form 56.10A inventory and valuation of the deceased's Newfoundland and Labrador property and assets; that value sets the estate-value court charge. Probate applications also include the will and Proof of Will. Administration applications commonly require a bond with two sureties unless the Court dispenses with it. CRA clearance remains a separate federal step near the end.", links: [{ label: "Newfoundland and Labrador probate and administration", url: "https://www.court.nl.ca/supreme/rules-practice-notes-and-forms/civil-proceedings/probate-and-admin/" }, { label: "Newfoundland and Labrador Court service fees", url: "https://www.court.nl.ca/supreme/schedule-of-fees/" }] },
-    PE: { title: "P.E.I.: Rule 65 petition, inventory and post-grant notices", body: "P.E.I. applications for Letters Probate or Administration are made by petition in the Supreme Court Estates Section using Rule 65 forms. The Probate Act requires the inventory before the grant. After the grant, the Registrar publishes an estate notice in the Gazette calling for demands within six months, and the personal representative must serve notice of the grant on beneficiaries under the Act's service rules. CRA clearance remains a separate federal step near the end.", links: [{ label: "P.E.I. Probate Act", url: "https://www.princeedwardisland.ca/en/legislation/probate-act" }, { label: "P.E.I. Rule 65 estate forms", url: "https://www.courts.pe.ca/forms" }] }
+    PE: { title: "P.E.I.: Rule 65 petition, inventory and post-grant notices", body: "P.E.I. applications for Letters Probate or Administration are made by petition in the Supreme Court Estates Section using Rule 65 forms. The Probate Act requires the inventory before the grant. After the grant, the Registrar publishes an estate notice in the Gazette calling for demands within six months, and the personal representative must serve notice of the grant on beneficiaries under the Act's service rules. CRA clearance remains a separate federal step near the end.", links: [{ label: "P.E.I. Probate Act", url: "https://www.princeedwardisland.ca/en/legislation/probate-act" }, { label: "P.E.I. Rule 65 estate forms", url: "https://www.courts.pe.ca/forms" }] },
+    QC: { title: "Quebec: succession, liquidator and will verification", body: "Quebec uses civil-law succession rules. The person settling the succession is the liquidator. A will search is mandatory. A notarial will does not need probate, while a holograph or witnessed will must be verified by a notary or the Superior Court. The liquidator registers the designation in the RDPRM, prepares an inventory, and publishes the required inventory notice in the RDPRM and a local newspaper. Successors generally have six months from death to accept or renounce, with an extension so they have at least 60 days after closure of the inventory. Before final distribution, use the Revenu Québec authorization process and obtain the CRA clearance certificate.", links: [{ label: "Quebec liquidator steps", url: "https://www.quebec.ca/en/family-and-support-for-individuals/death/what-to-do-in-the-event-of-death/checklist-of-steps-for-the-close-relatives-or-friends-and-the-liquidator/steps-to-be-taken-by-the-liquidator" }, { label: "Quebec will search", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/will-search" }, { label: "Revenu Québec distribution authorization", url: "https://www.revenuquebec.ca/en/online-services/forms-and-publications/current-details/mr-14-a-v/" }] }
   };
   const docs = docsByProvince[p] || docsByProvince.ON;
   const probate = probateByProvince[p] || probateByProvince.ON;
   return [
-    { id: "first", title: "The first calls", body: "Service Canada first, to stop CPP and OAS: benefits are payable for the month of the death and no further, and anything paid after that has to be repaid out of the estate. Then the Canada Revenue Agency, to report the date of death and stop benefit payments.", links: [{ label: "Who to notify, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }] },
+    { id: "first", title: "The first calls", body: p === "QC" ? "For a Quebec succession, notify the appropriate pension authorities for the deceased's contribution history: Retraite Québec for QPP and Service Canada for OAS and any CPP that applies. Also notify the Canada Revenue Agency. Quebec succession work later includes Revenu Québec as well." : "Service Canada first, to stop CPP and OAS: benefits are payable for the month of the death and no further, and anything paid after that has to be repaid out of the estate. Then the Canada Revenue Agency, to report the date of death and stop benefit payments.", links: p === "QC" ? [{ label: "Retraite Québec — death and survivor benefits", url: "https://www.retraitequebec.gouv.qc.ca/en/citizens/death" }, { label: "Who to notify, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }] : [{ label: "Who to notify, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }] },
     { id: "poa", title: "A power of attorney does not survive the death", body: "Every power of attorney and every pre-death authorisation ends when the person dies. Your authority after death comes from the will and applicable estate law, and sometimes from a court grant. Institutions will ask you to prove that authority.", links: [] },
     { id: "docs", title: "Proof of death", body: docs.body, links: docs.links },
-    { id: "money", title: "The 60-day one", body: "Service Canada asks for the CPP death benefit application within 60 days of the death, on form ISP1200. The base amount is $2,500. A further $2,500 is added only where the person died before ever collecting a CPP retirement or disability pension and left no surviving spouse or common-law partner.", links: [{ label: "CPP amounts, on canada.ca", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/payment-amounts.html" }] },
+    { id: "money", title: "The 60-day one", body: p === "QC" ? "For the QPP death benefit, the maximum is $2,500. During the first 60 days after death, priority can go to the person or charity that paid funeral expenses and provides proof; after 60 days, heirs may receive the benefit under the published rules. The application itself can be filed for up to five years after death." : "Service Canada asks for the CPP death benefit application within 60 days of the death, on form ISP1200. The base amount is $2,500. A further $2,500 is added only where the person died before ever collecting a CPP retirement or disability pension and left no surviving spouse or common-law partner.", links: p === "QC" ? [{ label: "QPP death benefit", url: "https://www.retraitequebec.gouv.qc.ca/en/citizens/death/death-benefit-quebec-pension-plan" }] : [{ label: "CPP amounts, on canada.ca", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/payment-amounts.html" }] },
     { id: "fraud", title: "Tell the credit bureaus", body: "Equifax and TransUnion should both be told so that new credit cannot easily be taken out in the name of the person who died.", links: [{ label: "Notifying a death, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }] },
     { id: "probate", title: probate.title, body: probate.body, links: probate.links },
     { id: "notadvice", title: "None of this is advice", body: "Whether an estate needs probate at all, how an asset passes, what the will means, and what should be filed are legal and tax questions. This app keeps your record of the process. It does not tell you what to do; use the province-specific legal-help route under Help when you need advice.", links: [] }
@@ -2713,7 +2798,7 @@ function EstateFile() {
 
     return h("div", { style: { marginTop: 20 } },
       h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } },
-        h("div", { style: { fontFamily: font.display, fontSize: fs(17), color: T.heading } }, t("Probate")),
+        h("div", { style: { fontFamily: font.display, fontSize: fs(17), color: T.heading } }, t(province === "QC" ? "Succession" : "Probate")),
         h("button", {
           onClick: () => openNewRedress(c.id),
           style: { border: "1px solid " + T.blue, borderRadius: 8, background: T.blueSoft, color: T.blue, fontSize: fs(11), fontWeight: 800, padding: "5px 10px", cursor: "pointer" }
@@ -2734,7 +2819,7 @@ function EstateFile() {
               ))
             ),
             h("div", { style: { background: T.goldSoft, border: "1px solid " + T.gold, borderRadius: 10, padding: "11px 13px", fontSize: fs(11.5), color: T.ink, lineHeight: 1.5, marginTop: 9 } },
-              t("Probate and estate-grant procedures differ by province. Record the actual dates from your court and government paperwork."),
+              t("Probate and succession procedures differ by province. Record the actual dates from your court, notary and government paperwork."),
               h("div", { style: { marginTop: 6, color: T.inkSoft } },
                 province === "ON" ? t("Ontario's Estate Information Return is generally due within 180 calendar days after the estate certificate is issued.") :
                 province === "BC" ? t("B.C. normally requires the P1 notice and a wait of at least 21 days before the grant application is made.") :
@@ -2744,7 +2829,8 @@ function EstateFile() {
                 province === "NS" ? t("Nova Scotia requires Form 29 inventory within 3 months after the grant and uses a six-month Royal Gazette estate-notice period.") :
                 province === "NB" ? t("New Brunswick uses province-specific Probate Court forms, with a 7-day minimum before probate/administration with will annexed can be granted and 14 days for intestate administration.") :
                 province === "NL" ? t("Newfoundland and Labrador starts with a Notice of Application and 5-day notice period, then uses Rule 56 petition and inventory materials.") :
-                t("Prince Edward Island uses Rule 65 petitions and inventory requirements, followed by Gazette estate-notice and beneficiary-notice work after the grant.")))
+                province === "PE" ? t("Prince Edward Island uses Rule 65 petitions and inventory requirements, followed by Gazette estate-notice and beneficiary-notice work after the grant.") :
+                t("Quebec uses a mandatory will search, liquidator designation, inventory and RDPRM notices. A notarial will does not need probate; non-notarial wills must be verified.")))
           )
         : h("div", { style: { marginTop: 8 } },
             steps.map((r) => {
@@ -2780,9 +2866,9 @@ function EstateFile() {
 
   const redressSheet = () => sheet(() => setRedressOpen(false), [
     h("div", { key: "t", style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } },
-      rdEditingId ? t("Edit this step") : t("Add a probate step")),
+      rdEditingId ? t("Edit this step") : t(province === "QC" ? "Add a succession step" : "Add a probate step")),
     h("div", { key: "b", style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.45 } },
-      t("Your own record of the probate process. Nothing entered here is submitted to a court, provincial authority or the CRA.")),
+      t(province === "QC" ? "Your own record of the succession process. Nothing entered here is submitted to a court, notary, Revenu Québec, the CRA or any other authority." : "Your own record of the probate process. Nothing entered here is submitted to a court, provincial authority or the CRA.")),
     h(Field, { key: "lv", label: t("Which stage"), hint: redressLevel(rdLevel, province).blurb },
       h("select", { value: rdLevel, onChange: (e) => setRdLevel(e.currentTarget.value), style: { ...inputStyle(), width: "100%" } },
         probateLevels(province).map((l) => h("option", { key: l.id, value: l.id }, t(l.label))))),
@@ -2792,7 +2878,7 @@ function EstateFile() {
           claims.map((c) => h("option", { key: c.id, value: c.id }, c.condition))))),
     h(Field, { key: "rq", label: t("Date started or filed") },
       h("input", { type: "date", value: rdRequested, onInput: (e) => setRdRequested(e.currentTarget.value), style: { ...inputStyle(), width: "100%" } })),
-    h(Field, { key: "hd", label: t("Date received or issued"), hint: t("Leave blank if this probate stage does not produce a dated response or certificate.") },
+    h(Field, { key: "hd", label: t("Date received or issued"), hint: t(province === "QC" ? "Leave blank if this succession stage does not produce a dated response, registration or certificate." : "Leave blank if this probate stage does not produce a dated response or certificate.") },
       h("input", { type: "date", value: rdHeard, onInput: (e) => setRdHeard(e.currentTarget.value), style: { ...inputStyle(), width: "100%" } })),
     h(Field, { key: "dc", label: t("Date completed"), hint: t("Leave blank while this stage is still outstanding.") },
       h("input", { type: "date", value: rdDecided, onInput: (e) => setRdDecided(e.currentTarget.value), style: { ...inputStyle(), width: "100%" } })),
@@ -2952,6 +3038,11 @@ function EstateFile() {
       PE: [
         { label: "Prince Edward Island Probate Act", url: "https://www.princeedwardisland.ca/en/legislation/probate-act" },
         { label: "Prince Edward Island Rule 65 estate forms", url: "https://www.courts.pe.ca/forms" }
+      ],
+      QC: [
+        { label: "Quebec will verification", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/settlement/succession-will/probating" },
+        { label: "Quebec mandatory will search", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/will-search" },
+        { label: "Quebec liquidator designation", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/liquidator/appointment" }
       ]
     };
     const hintByProvince = {
@@ -2963,7 +3054,8 @@ function EstateFile() {
       NS: "Enter the Nova Scotia estate value used for probate tax. The Probate Act and regulations determine what property counts; get advice if ownership or valuation is unclear.",
       NB: "Enter the New Brunswick estate value used for probate tax. The calculator applies the rates effective June 12, 2026; whether particular property belongs in the application is a legal question.",
       NL: "Enter the Newfoundland and Labrador estate value used on Form 56.10A. The Court says the inventory value is used to set the estate-value court charge.",
-      PE: "Enter the P.E.I. probate value for the standard petition fee. The Probate Act defines probate value; get legal advice if you are unsure what property belongs in it."
+      PE: "Enter the P.E.I. probate value for the standard petition fee. The Probate Act defines probate value; get legal advice if you are unsure what property belongs in it.",
+      QC: "Quebec does not use an estate-value probate tax. The important cost question is whether a non-notarial will must be verified, plus RDPRM, newspaper, notary or court costs that depend on the file."
     };
     const emptyByProvince = {
       ON: "Ontario: $0 on the first $50,000, then $15 per $1,000 or part above it; the estate value is rounded up to the next $1,000.",
@@ -2974,7 +3066,8 @@ function EstateFile() {
       NS: "Nova Scotia: probate tax is charged by estate-value band. Above $100,000 it is $1,002.65 plus $16.95 for every $1,000 or part over $100,000. Royal Gazette advertising is a separate post-grant cost.",
       NB: "New Brunswick (applications filed on or after June 12, 2026): $200 up to $20,000; then $5 per $1,000 or part over $20,000 through $100,000; above $100,000, $600 plus $15 per $1,000 or part over $100,000.",
       NL: "Newfoundland and Labrador: $60 where the estate value does not exceed $1,000; above $1,000, $60 plus $0.60 for each additional $100 in value (0.6% of the portion over $1,000).",
-      PE: "Prince Edward Island: $50 up to $10,000; $100 to $25,000; $200 to $50,000; $400 to $100,000; above $100,000, $400 plus $4 per $1,000 or fraction over $100,000."
+      PE: "Prince Edward Island: $50 up to $10,000; $100 to $25,000; $200 to $50,000; $400 to $100,000; above $100,000, $400 plus $4 per $1,000 or fraction over $100,000.",
+      QC: "Quebec: no estate-value probate tax. A notarial will does not need probate; holograph and witnessed wills require verification. Current RDPRM fees shown by Quebec are $59 for liquidator designation and $59 for each listed closure notice; other costs vary."
     };
     const sources = sourcesByProvince[province] || sourcesByProvince.ON;
     const hint = hintByProvince[province] || hintByProvince.ON;
@@ -3060,16 +3153,23 @@ function EstateFile() {
           h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("This is the standard petition fee only. The Probate Act has separate fees for some proceedings and an additional $1 fee for each renunciation or dedimus where probate value exceeds $1,000.")));
+    } else if (province === "QC") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { fontFamily: font.display, fontSize: fs(16), color: T.heading, marginBottom: 7 } }, t("Quebec succession costs work differently")),
+        h("div", { style: { fontSize: fs(11.5), color: T.ink, lineHeight: 1.55 } },
+          t("There is no estate-value probate tax to calculate. A notarial will does not need probate. A holograph or witnessed will must be verified by a notary or Superior Court, and those costs vary by route.")),
+        h("div", { style: { fontSize: fs(11), color: T.inkSoft, marginTop: 8, lineHeight: 1.5 } },
+          t("Current Quebec government pages list $59 to register the liquidator designation in the RDPRM, $59 for the notice of closure of inventory, and $59 for the notice closing the final account. Newspaper, registry-search, notary and court costs are separate.")));
     }
 
     return h("div", { style: { padding: 16 } },
-      h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Work out the probate fee")),
+      h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t(province === "QC" ? "Quebec succession costs" : "Work out the probate fee")),
       h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.5 } },
-        p.label + t(" rules from a value you enter. Arithmetic on published government rates, not a legal decision about what belongs in the estate.")),
+        province === "QC" ? t("Quebec does not use an estate-value probate tax. This screen shows the succession cost structure and the official sources instead of asking for a meaningless estate-value calculation.") : p.label + t(" rules from a value you enter. Arithmetic on published government rates, not a legal decision about what belongs in the estate.")),
 
       provincePicker(14),
 
-      h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px", marginBottom: 12 } },
+      province === "QC" ? null : h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px", marginBottom: 12 } },
         h(Field, { label: t("Estate value for this calculation"), hint: t(hint) },
           h("input", {
             type: "number", inputMode: "decimal", min: "0", value: estImpair,
@@ -3150,7 +3250,7 @@ function EstateFile() {
   const benefitsScreen = () => h("div", { style: { padding: 16 } },
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("What exists")),
     h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.5 } },
-      t("Federal benefits apply across Canada. Provincial estate information below changes with the estate province selected here and in Settings.")),
+      t(province === "QC" ? "Quebec uses the Québec Pension Plan for its main survivor benefits; federal OAS, CRA and other Canada-wide information still applies. Estate information below follows Quebec succession rules." : "Federal benefits apply across Canada. Provincial estate information below changes with the estate province selected here and in Settings.")),
 
     provincePicker(14),
 
@@ -3187,7 +3287,7 @@ function EstateFile() {
 
     h("div", { style: { background: T.goldSoft, border: "1px solid " + T.gold, borderRadius: 10, padding: "12px 14px", fontSize: fs(12), color: T.ink, lineHeight: 1.55, marginBottom: 10 } },
       h("b", null, t("Not sure which of these applies to you?")),
-      t(" That is normal. Eligibility depends on the benefit and the person's circumstances. Use the official links for the rules, and ask Service Canada, the CRA, or a qualified professional when you are unsure."),
+      t(" That is normal. Eligibility depends on the benefit and the person's circumstances. Use the official links for the rules, and ask Service Canada, Retraite Québec when applicable, the CRA, or a qualified professional when you are unsure."),
       h("div", { style: { marginTop: 7, color: T.inkSoft } }, t("Key phone numbers and legal-help information are under Help, at the top of any screen."))
     ),
 
@@ -3200,7 +3300,7 @@ function EstateFile() {
       }
     },
       h("b", null, t("Every number in one place.")),
-      t(" Crisis and grief support, the federal numbers you may need, and province-specific legal-help routes. Tap here, or Help at the top of any screen."))
+      t(" Crisis and grief support, the government numbers you may need, and province-specific legal-help routes. Tap here, or Help at the top of any screen."))
   );
 
   const summarySheet = () => sheet(() => setSummaryOpen(false), [
@@ -3556,7 +3656,7 @@ function EstateFile() {
   const settingsScreen = () => h("div", { style: { padding: 16 } },
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Estate province")),
     h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 8, lineHeight: 1.45 } },
-      t("Choose the province whose estate rules apply. Federal CPP, OAS and CRA information stays Canada-wide; Probate, provincial Benefits, Help and the guide change with this choice.")),
+      t("Choose the province whose estate rules apply. All 10 provinces are supported. Federal information stays Canada-wide; Quebec uses QPP survivor benefits, and Probate / Succession, provincial Benefits, Help and the guide change with this choice.")),
     provincePicker(24),
 
     // V1A is English-only; the language control returns when the estate-specific French translation is complete.
@@ -3651,7 +3751,7 @@ function EstateFile() {
 
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Getting help")),
     h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 10, padding: "12px 14px", fontSize: fs(12), color: T.ink, lineHeight: 1.55, marginBottom: 24 } },
-      t("Legal-help routes differ by province. Help shows the current route for ") + provinceDef(province).label + t(", along with Canada-wide government numbers and grief supports."),
+      t("Legal-help routes differ by province. Help shows the current route for ") + provinceDef(province).label + t(", along with the government numbers and grief supports that apply."),
       h("div", { style: { marginTop: 8, color: T.inkSoft } }, t("All the numbers are under Help, at the top of any screen."))
     ),
 
@@ -3664,17 +3764,17 @@ function EstateFile() {
       // person sharing it needs to copy it more often than visit it.
       h("div", { style: { marginBottom: 8 } },
         h("a", {
-          href: "https://estate-file.vercel.app",
+          href: "https://estate-file-wheat.vercel.app",
           target: "_blank", rel: "noopener noreferrer",
           style: { color: T.blue, fontFamily: font.body, fontSize: fs(12.5), fontWeight: 700, textDecoration: "none", userSelect: "text", WebkitUserSelect: "text" }
-        }, "estate-file.vercel.app"),
+        }, "estate-file-wheat.vercel.app"),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 2, lineHeight: 1.45 } },
           t(t("The app's address. Open it in Safari on any phone and add it to the home screen.")))),
       t("Estate File is not affiliated with, endorsed by, or connected to any government department, court, law firm or accountancy practice. It reads no file and submits nothing on your behalf. It is a private place to keep your own record."),
       h("div", { style: { marginTop: 8 } },
-        t("The Probate tab uses the published ") + provinceDef(province).label + t(" fee rules checked in ") + RATES_READ + t(". It shows arithmetic on a value you enter. It does not decide what the estate is worth, whether a court grant is needed, or how any asset passes. Those are legal questions.")),
+        province === "QC" ? t("The Succession tab uses published Quebec succession rules checked in ") + RATES_READ + t(". Quebec has no estate-value probate tax; the app records the civil-law process and known public registration fees without pretending to price notary or court work.") : t("The Probate tab uses the published ") + provinceDef(province).label + t(" fee rules checked in ") + RATES_READ + t(". It shows arithmetic on a value you enter. It does not decide what the estate is worth, whether a court grant is needed, or how any asset passes. Those are legal questions.")),
       h("div", { style: { marginTop: 8 } },
-        t("Nothing here is legal, tax or financial advice. Eligibility is decided by Service Canada and the CRA; what the will means and whether probate is needed are decided by a lawyer.")),
+        t("Nothing here is legal, tax or financial advice. Benefit eligibility is decided by the responsible government authority; legal questions about the will, probate or a Quebec succession belong with a qualified legal professional.")),
       h("div", { style: { marginTop: 8 } },
         t("No account, no server, no adverts, and nothing leaves this device.")),
       // The one line saying whose this is. The app states in five places what
@@ -3898,9 +3998,9 @@ function EstateFile() {
     { id: "documents", label: t("Docs"),
       about: "Photographs and PDFs of statements of death, the will, certificates and letters, kept on this phone." },
     { id: "benefits", label: t("Benefits"),
-      about: "Benefits and support that may be available to a survivor or the estate, plus the calls that stop payments going out incorrectly. It does not decide eligibility; Service Canada and the CRA do." },
-    { id: "estimate", label: t("Probate"),
-      about: provinceDef(province).label + " probate / grant fees from an estate value, plus the province-specific process tracker. Arithmetic, not legal advice." },
+      about: province === "QC" ? "Quebec Pension Plan survivor benefits, federal support and Quebec succession information. It does not decide eligibility; use Retraite Québec and the responsible government authority." : "Benefits and support that may be available to a survivor or the estate, plus the calls that stop payments going out incorrectly. It does not decide eligibility; the responsible government authority does." },
+    { id: "estimate", label: t(province === "QC" ? "Succession" : "Probate"),
+      about: province === "QC" ? "Quebec succession / will-verification information, RDPRM steps and liquidator process tracking. Information, not legal advice." : provinceDef(province).label + " probate / grant fees from an estate value, plus the province-specific process tracker. Arithmetic, not legal advice." },
     { id: "settings", label: t("Settings"),
       about: "Appearance, text size, the PIN lock, backups, and printing your whole file." }
   ];
