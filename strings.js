@@ -1,4 +1,4 @@
-/* Estate File v1K — English/French language layer.
+/* Estate File v1M — English/French language layer.
 
    English source text stays in app.js. t("...") returns the French version
    when the interface is French and the English source otherwise. A missing

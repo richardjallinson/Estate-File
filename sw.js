@@ -1,4 +1,4 @@
-/* Estate File v1K - service worker.
+/* Estate File v1M - service worker.
 
    Two rules pull in opposite directions here and both matter.
 
@@ -20,7 +20,7 @@
 
    APP_VERSION in app.js and CACHE_NAME here must always match. A test
    asserts it, because remembering to bump it by hand is exactly what failed. */
-const CACHE_NAME = "estate-file-v1K";
+const CACHE_NAME = "estate-file-v1M";
 const CORE_ASSETS = [
   "/",
   "/index.html",

@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1K";
+const APP_VERSION = "v1M";
 
 // ---- Day and night.
 //
@@ -4534,51 +4534,26 @@ function EstateFile() {
       style: { display: "none" }
     }),
 
-    // The one line of flag red in the chrome: a hairline under the navy
-    // header. Enough to say where the app is from; anything louder would
-    // start to look like it was issued by the government, which it must not.
-    h("div", { style: { background: T.header, color: T.cream, padding: "calc(10px + env(safe-area-inset-top)) 16px 0", borderBottom: "2px solid " + T.maple } },
-      // Keep the brand and jurisdiction dominant on narrow phones. The utility
-      // controls use a second row so the app name and subtitle never truncate.
-      h("div", { style: { display: "flex", alignItems: "center", gap: 11 } },
-        h(MapleLeaf, { size: 28, style: { flex: "0 0 auto" } }),
-        h("div", { style: { minWidth: 0, display: "flex", alignItems: "center", gap: 8 } },
-          h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(20) + "px, " + fs(5.5) + "vw, " + fs(26) + "px)", lineHeight: 1.15, whiteSpace: "nowrap" } }, t("Estate File Canada")),
-          h("span", { "aria-label": t("Estate province or territory") + ": " + t(provinceDef(province).label), style: { flex: "0 0 auto", padding: "3px 7px", borderRadius: 7, border: "1px solid " + T.gold, color: T.gold, fontFamily: font.body, fontSize: fs(9.5), fontWeight: 800, lineHeight: 1.2, letterSpacing: 0.3 } }, province === "ON" ? "ONT" : t(provinceDef(province).short))
+    // V1M header: stronger navy-and-gold identity with a larger brand title.
+    // Help, language and the selected jurisdiction remain immediately visible.
+    h("div", { style: { background: T.header, color: T.cream, padding: "calc(10px + env(safe-area-inset-top)) 16px 0", borderBottom: "2px solid " + T.gold } },
+      h("div", { style: { display: "flex", alignItems: "center", gap: 10 } },
+        h("div", { style: { width: 42, height: 42, borderRadius: 999, border: "1.5px solid " + T.gold, display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" } },
+          h(MapleLeaf, { size: 27, color: T.gold })
         ),
+        h("div", { style: { minWidth: 0, flex: "1 1 auto", fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(24) + "px, " + fs(6.4) + "vw, " + fs(32) + "px)", lineHeight: 1.05, whiteSpace: "nowrap", letterSpacing: -0.25 } }, t("Estate File Canada")),
         h("button", {
           onClick: () => { setTab("settings"); setOpenClaim(null); },
-          "aria-label": t("Settings"),
-          "aria-current": tab === "settings" ? "page" : undefined,
-          title: t("Settings"),
-          style: {
-            marginLeft: "auto", flex: "0 0 auto", cursor: "pointer", width: 42, height: 42, padding: 0,
-            background: tab === "settings" ? "rgba(197,154,39,0.14)" : "transparent",
-            border: "1px solid " + (tab === "settings" ? T.gold : "rgba(251,248,240,0.4)"),
-            borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center",
-            color: tab === "settings" ? T.gold : T.cream, fontFamily: font.body, fontSize: fs(20), fontWeight: 700, lineHeight: 1
-          }
-        }, h("span", { "aria-hidden": "true" }, "⚙︎"))
+          "aria-label": t("Settings"), "aria-current": tab === "settings" ? "page" : undefined, title: t("Settings"),
+          style: { marginLeft: "auto", flex: "0 0 auto", cursor: "pointer", width: 42, height: 42, padding: 0, background: tab === "settings" ? "rgba(197,154,39,0.14)" : "transparent", border: "1.5px solid " + T.gold, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", color: T.gold, fontFamily: font.body, fontSize: fs(27), fontWeight: 800, lineHeight: 1 }
+        }, h("span", { "aria-hidden": "true", style: { transform: "translateY(-1px)" } }, "⚙︎"))
       ),
-      h("div", { style: { display: "flex", alignItems: "center", gap: 10, marginTop: 3, paddingLeft: 39 } },
-        h("div", { style: { minWidth: 0, flex: "1 1 auto", fontSize: fs(12.5), opacity: 0.72, whiteSpace: "nowrap" } }, t("An executor's own record")),
-        h("div", { style: { flex: "0 0 auto", display: "flex", alignItems: "center", gap: 8 } },
-          h("div", { role: "group", "aria-label": t("Language"), style: { display: "flex", alignItems: "center", gap: 3 } },
-            [["en", "EN"], ["fr", "FR"]].map((pair, i) => [
-              i ? h("span", { key: "sep", "aria-hidden": "true", style: { color: T.cream, opacity: 0.3, fontFamily: font.body, fontSize: fs(10.5) } }, "|") : null,
-              h("button", {
-                key: pair[0], onClick: () => chooseLang(pair[0]),
-                "aria-pressed": lang === pair[0] ? "true" : "false", lang: pair[0],
-                style: { cursor: "pointer", background: "transparent", border: "none", padding: "9px 5px", color: T.cream, fontFamily: font.body, fontSize: fs(11), fontWeight: lang === pair[0] ? 800 : 600, opacity: lang === pair[0] ? 1 : 0.55, textDecoration: lang === pair[0] ? "underline" : "none" }
-              }, pair[1])
-            ])
-          ),
-          h("button", {
-            onClick: () => setHelpOpen(true),
-            "aria-label": t("Help and phone numbers"),
-            style: { cursor: "pointer", background: "transparent", border: "1px solid rgba(251,248,240,0.4)", borderRadius: 999, padding: "0 11px", minHeight: 36, display: "inline-flex", alignItems: "center", color: T.cream, fontFamily: font.body, fontSize: fs(11.5), fontWeight: 800 }
-          }, t("Help"))
-        )
+      h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 7, paddingLeft: 52 } },
+        h("button", { onClick: () => setHelpOpen(true), "aria-label": t("Help and phone numbers"), style: { cursor: "pointer", background: "transparent", border: "1px solid rgba(251,248,240,0.45)", borderRadius: 999, padding: "0 11px", minHeight: 34, display: "inline-flex", alignItems: "center", color: T.cream, fontFamily: font.body, fontSize: fs(11), fontWeight: 800 } }, t("Help")),
+        h("div", { role: "group", "aria-label": t("Language"), style: { display: "flex", alignItems: "center", border: "1px solid " + T.gold, borderRadius: 999, overflow: "hidden", flex: "0 0 auto" } },
+          [["en", "EN"], ["fr", "FR"]].map((pair) => h("button", { key: pair[0], onClick: () => chooseLang(pair[0]), "aria-pressed": lang === pair[0] ? "true" : "false", lang: pair[0], style: { cursor: "pointer", background: lang === pair[0] ? "rgba(197,154,39,0.15)" : "transparent", border: "none", borderRight: pair[0] === "en" ? "1px solid " + T.gold : "none", padding: "8px 11px", color: lang === pair[0] ? T.gold : T.cream, fontFamily: font.body, fontSize: fs(10.5), fontWeight: 800 } }, pair[1]))
+        ),
+        h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, "aria-label": t("Estate province or territory") + ": " + t(provinceDef(province).label), style: { cursor: "pointer", background: "transparent", border: "1px solid rgba(251,248,240,0.45)", borderRadius: 999, padding: "7px 11px", color: T.cream, fontFamily: font.body, fontSize: fs(10.5), fontWeight: 800, flex: "0 0 auto" } }, "◆ ", province === "ON" ? "ONT" : t(provinceDef(province).short))
       ),
       // The tab strip sits in its own relative box so a fade can be laid over
       // the right edge. If the labels ever do overflow, on a smaller phone or
