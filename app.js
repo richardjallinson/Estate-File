@@ -730,6 +730,93 @@ const CONDITION_STATUSES = [
   { id: "closed", label: "Dealt with", tone: "green" }
 ];
 
+const PROBATE_SOURCES = {
+  ON: [{ label: "Ontario Estate Administration Tax", url: "https://www.ontario.ca/page/estate-administration-tax" }],
+  BC: [
+    { label: "B.C. Probate Fee Act", url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/00_99004_01" },
+    { label: "B.C. Supreme Court fees", url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/168_2009_06" }
+  ],
+  AB: [{ label: "Alberta court fees", url: "https://www.alberta.ca/court-fees" }],
+  SK: [{ label: "Saskatchewan probate fees", url: "https://sasklawcourts.ca/kings-bench/wills-and-estates/probating-an-estate/" }],
+  MB: [
+    { label: "Manitoba Court Services Fees Regulation", url: "https://web2.gov.mb.ca/laws/regs/current/150-2021.php" },
+    { label: "Manitoba probate-charge elimination notice", url: "https://www.manitobacourts.mb.ca/site/assets/files/1152/2020-11-06_notice_-_elimination_of_probate_charges.pdf" }
+  ],
+  NS: [
+    { label: "Nova Scotia Probate Court costs and fees", url: "https://www.courts.ns.ca/resources/public/costs-fees" },
+    { label: "Nova Scotia probate regulations", url: "https://novascotia.ca/just/regulations/regs/probregs.htm" }
+  ],
+  NB: [
+    { label: "New Brunswick Probate Court tax and fees", url: "https://www.gnb.ca/content/cour/en/probate-court.html" },
+    { label: "New Brunswick Probate Court Act", url: "https://laws.gnb.ca/en/document/cs/P-17.1/" }
+  ],
+  NL: [
+    { label: "Newfoundland and Labrador Court service fees", url: "https://www.court.nl.ca/supreme/schedule-of-fees/" },
+    { label: "Newfoundland and Labrador Services Charges Act", url: "https://www.assembly.nl.ca/legislation/sr/statutes/s13-2.htm" }
+  ],
+  PE: [
+    { label: "Prince Edward Island Probate Act", url: "https://www.princeedwardisland.ca/en/legislation/probate-act" },
+    { label: "Prince Edward Island Rule 65 estate forms", url: "https://www.courts.pe.ca/forms" }
+  ],
+  QC: [
+    { label: "Quebec will verification", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/settlement/succession-will/probating" },
+    { label: "Quebec mandatory will search", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/will-search" },
+    { label: "Quebec liquidator designation", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/liquidator/appointment" }
+  ],
+  YT: [
+    { label: "Yukon Supreme Court Appendix C fees", url: "https://www.yukoncourts.ca/sites/default/files/2023-12/Appendix%20C.pdf" },
+    { label: "Yukon Rule 64", url: "https://www.yukoncourts.ca/sites/default/files/2022-12/2022%20Rule%2064%20-%20ADMINISTRATION%20OF%20ESTATES%20%28NON%20CONTENTIOUS%29.pdf" }
+  ],
+  NT: [
+    { label: "NWT Court Services Fees Regulations", url: "https://www.justice.gov.nt.ca/en/legislation/" },
+    { label: "NWT Estate Administration Rules", url: "https://www.justice.gov.nt.ca/en/files/court-rules/Judicature%20Act/Estate%20Administration%20Rules/Estate%20Administration%20Rules.pdf" }
+  ],
+  NU: [
+    { label: "Nunavut Court fee structure", url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/court-policies-and-fees" },
+    { label: "Nunavut Probate and Administration Rules", url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/rules-court" }
+  ]
+};
+const PROBATE_HINT = {
+  ON: "Enter the estate value used for Ontario Estate Administration Tax. Which assets count is a legal question.",
+  BC: "Enter the estate value for the B.C. grant. The Probate Fee Act has its own definition of estate value; get advice if you are unsure what counts.",
+  AB: "Enter the net value of property in Alberta used for the grant-fee bracket.",
+  SK: "Enter the Saskatchewan estate value used for the standard probate levy. The government application guidance calculates the levy from Total Part 1 Assets on the Statement of Property; whether an asset belongs there is a legal question.",
+  MB: "Manitoba has no value-based probate application charge. Entering a value confirms the current $0 charge; separate court services can still have fees.",
+  NS: "Enter the Nova Scotia estate value used for probate tax. The Probate Act and regulations determine what property counts; get advice if ownership or valuation is unclear.",
+  NB: "Enter the New Brunswick estate value used for probate tax. The calculator applies the rates effective June 12, 2026; whether particular property belongs in the application is a legal question.",
+  NL: "Enter the Newfoundland and Labrador estate value used on Form 56.10A. The Court says the inventory value is used to set the estate-value court charge.",
+  PE: "Enter the P.E.I. probate value for the standard petition fee. The Probate Act defines probate value; get legal advice if you are unsure what property belongs in it.",
+  QC: "Quebec does not use an estate-value probate tax. The important cost question is whether a non-notarial will must be verified, plus RDPRM, newspaper, notary or court costs that depend on the file.",
+  YT: "Enter the Yukon estate value used for the grant-fee threshold. Whether a grant is required and what property belongs in the estate are legal questions.",
+  NT: "Enter the value of property in the Northwest Territories after deducting debts and liabilities against that property, as used by the current court-fee bands.",
+  NU: "Enter the value of property in Nunavut after deducting debts and liabilities against that property, as used by the current court-fee bands."
+};
+const PROBATE_SUMMARY = {
+  ON: "Ontario: $0 on the first $50,000, then $15 per $1,000 or part above it; the estate value is rounded up to the next $1,000.",
+  BC: "B.C.: no Probate Fee Act fee at $25,000 or less. Above that the bands are $6 and $14 per $1,000 or part, plus a separate $200 court commencement fee above $25,000.",
+  AB: "Alberta: the grant fee is a fixed bracket from $35 to $525, based on the net value of property in Alberta.",
+  SK: "Saskatchewan standard grant application: $200 Local Registrar filing fee plus $7 per $1,000 or part. A separate $100 small-estate order may be available for qualifying estates with personal property of $25,000 or less and no Saskatchewan real property passing through the estate.",
+  MB: "Manitoba: charges for applications for probate or administration were eliminated effective November 6, 2020. Separate court services can still have fees.",
+  NS: "Nova Scotia: probate tax is charged by estate-value band. Above $100,000 it is $1,002.65 plus $16.95 for every $1,000 or part over $100,000. Royal Gazette advertising is a separate post-grant cost.",
+  NB: "New Brunswick (applications filed on or after June 12, 2026): $200 up to $20,000; then $5 per $1,000 or part over $20,000 through $100,000; above $100,000, $600 plus $15 per $1,000 or part over $100,000.",
+  NL: "Newfoundland and Labrador: $60 where the estate value does not exceed $1,000; above $1,000, $60 plus $0.60 for each additional $100 in value (0.6% of the portion over $1,000).",
+  PE: "Prince Edward Island: $50 up to $10,000; $100 to $25,000; $200 to $50,000; $400 to $100,000; above $100,000, $400 plus $4 per $1,000 or fraction over $100,000.",
+  QC: "Quebec: no estate-value probate tax. A notarial will does not need probate; holograph and witnessed wills require verification. Current RDPRM fees shown by Quebec are $59 for liquidator designation and $59 for each listed closure notice; other costs vary.",
+  YT: "Yukon: no grant fee where the estate does not exceed $25,000; $140 for a grant, ancillary grant or resealing where the estate exceeds $25,000.",
+  NT: "Northwest Territories: $30 up to $10,000; $110 to $25,000; $215 to $125,000; $325 to $250,000; $435 above $250,000. A separate Rule 10 small-estate declaration route exists where net value reasonably appears under $35,000.",
+  NU: "Nunavut: $30 up to $10,000; $110 to $25,000; $215 to $125,000; $325 to $250,000; $425 above $250,000. Certified copies, caveats and other services can add separate fees."
+};
+
+// Data-driven jurisdiction copy for the Probate / Succession screen. These
+// live at module scope, beside the other per-jurisdiction tables, for one
+// reason: the French coverage test sweeps every jurisdiction through the
+// accessors below. While they were local to estimateScreen() the test could
+// not reach them, and thirteen fee-summary paragraphs and thirteen input
+// hints shipped untranslated with a green suite.
+function probateSources(p) { return PROBATE_SOURCES[normaliseProvinceId(p)] || PROBATE_SOURCES.ON; }
+function probateHint(p) { return PROBATE_HINT[normaliseProvinceId(p)] || PROBATE_HINT.ON; }
+function probateSummary(p) { return PROBATE_SUMMARY[normaliseProvinceId(p)] || PROBATE_SUMMARY.ON; }
+
 // ---- Probate, as a tracked sequence.
 const PROBATE_LEVELS = {
   ON: [
@@ -3351,85 +3438,9 @@ function EstateFile() {
     const hasInput = raw !== null && Number.isFinite(raw) && raw >= 0;
     const calc = hasInput ? calculateProbateFees(province, raw) : null;
     const p = provinceDef(province);
-    const sourcesByProvince = {
-      ON: [{ label: "Ontario Estate Administration Tax", url: "https://www.ontario.ca/page/estate-administration-tax" }],
-      BC: [
-        { label: "B.C. Probate Fee Act", url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/00_99004_01" },
-        { label: "B.C. Supreme Court fees", url: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/168_2009_06" }
-      ],
-      AB: [{ label: "Alberta court fees", url: "https://www.alberta.ca/court-fees" }],
-      SK: [{ label: "Saskatchewan probate fees", url: "https://sasklawcourts.ca/kings-bench/wills-and-estates/probating-an-estate/" }],
-      MB: [
-        { label: "Manitoba Court Services Fees Regulation", url: "https://web2.gov.mb.ca/laws/regs/current/150-2021.php" },
-        { label: "Manitoba probate-charge elimination notice", url: "https://www.manitobacourts.mb.ca/site/assets/files/1152/2020-11-06_notice_-_elimination_of_probate_charges.pdf" }
-      ],
-      NS: [
-        { label: "Nova Scotia Probate Court costs and fees", url: "https://www.courts.ns.ca/resources/public/costs-fees" },
-        { label: "Nova Scotia probate regulations", url: "https://novascotia.ca/just/regulations/regs/probregs.htm" }
-      ],
-      NB: [
-        { label: "New Brunswick Probate Court tax and fees", url: "https://www.gnb.ca/content/cour/en/probate-court.html" },
-        { label: "New Brunswick Probate Court Act", url: "https://laws.gnb.ca/en/document/cs/P-17.1/" }
-      ],
-      NL: [
-        { label: "Newfoundland and Labrador Court service fees", url: "https://www.court.nl.ca/supreme/schedule-of-fees/" },
-        { label: "Newfoundland and Labrador Services Charges Act", url: "https://www.assembly.nl.ca/legislation/sr/statutes/s13-2.htm" }
-      ],
-      PE: [
-        { label: "Prince Edward Island Probate Act", url: "https://www.princeedwardisland.ca/en/legislation/probate-act" },
-        { label: "Prince Edward Island Rule 65 estate forms", url: "https://www.courts.pe.ca/forms" }
-      ],
-      QC: [
-        { label: "Quebec will verification", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/settlement/succession-will/probating" },
-        { label: "Quebec mandatory will search", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/will-search" },
-        { label: "Quebec liquidator designation", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/liquidator/appointment" }
-      ],
-      YT: [
-        { label: "Yukon Supreme Court Appendix C fees", url: "https://www.yukoncourts.ca/sites/default/files/2023-12/Appendix%20C.pdf" },
-        { label: "Yukon Rule 64", url: "https://www.yukoncourts.ca/sites/default/files/2022-12/2022%20Rule%2064%20-%20ADMINISTRATION%20OF%20ESTATES%20%28NON%20CONTENTIOUS%29.pdf" }
-      ],
-      NT: [
-        { label: "NWT Court Services Fees Regulations", url: "https://www.justice.gov.nt.ca/en/legislation/" },
-        { label: "NWT Estate Administration Rules", url: "https://www.justice.gov.nt.ca/en/files/court-rules/Judicature%20Act/Estate%20Administration%20Rules/Estate%20Administration%20Rules.pdf" }
-      ],
-      NU: [
-        { label: "Nunavut Court fee structure", url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/court-policies-and-fees" },
-        { label: "Nunavut Probate and Administration Rules", url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/rules-court" }
-      ]
-    };
-    const hintByProvince = {
-      ON: "Enter the estate value used for Ontario Estate Administration Tax. Which assets count is a legal question.",
-      BC: "Enter the estate value for the B.C. grant. The Probate Fee Act has its own definition of estate value; get advice if you are unsure what counts.",
-      AB: "Enter the net value of property in Alberta used for the grant-fee bracket.",
-      SK: "Enter the Saskatchewan estate value used for the standard probate levy. The government application guidance calculates the levy from Total Part 1 Assets on the Statement of Property; whether an asset belongs there is a legal question.",
-      MB: "Manitoba has no value-based probate application charge. Entering a value confirms the current $0 charge; separate court services can still have fees.",
-      NS: "Enter the Nova Scotia estate value used for probate tax. The Probate Act and regulations determine what property counts; get advice if ownership or valuation is unclear.",
-      NB: "Enter the New Brunswick estate value used for probate tax. The calculator applies the rates effective June 12, 2026; whether particular property belongs in the application is a legal question.",
-      NL: "Enter the Newfoundland and Labrador estate value used on Form 56.10A. The Court says the inventory value is used to set the estate-value court charge.",
-      PE: "Enter the P.E.I. probate value for the standard petition fee. The Probate Act defines probate value; get legal advice if you are unsure what property belongs in it.",
-      QC: "Quebec does not use an estate-value probate tax. The important cost question is whether a non-notarial will must be verified, plus RDPRM, newspaper, notary or court costs that depend on the file.",
-      YT: "Enter the Yukon estate value used for the grant-fee threshold. Whether a grant is required and what property belongs in the estate are legal questions.",
-      NT: "Enter the value of property in the Northwest Territories after deducting debts and liabilities against that property, as used by the current court-fee bands.",
-      NU: "Enter the value of property in Nunavut after deducting debts and liabilities against that property, as used by the current court-fee bands."
-    };
-    const emptyByProvince = {
-      ON: "Ontario: $0 on the first $50,000, then $15 per $1,000 or part above it; the estate value is rounded up to the next $1,000.",
-      BC: "B.C.: no Probate Fee Act fee at $25,000 or less. Above that the bands are $6 and $14 per $1,000 or part, plus a separate $200 court commencement fee above $25,000.",
-      AB: "Alberta: the grant fee is a fixed bracket from $35 to $525, based on the net value of property in Alberta.",
-      SK: "Saskatchewan standard grant application: $200 Local Registrar filing fee plus $7 per $1,000 or part. A separate $100 small-estate order may be available for qualifying estates with personal property of $25,000 or less and no Saskatchewan real property passing through the estate.",
-      MB: "Manitoba: charges for applications for probate or administration were eliminated effective November 6, 2020. Separate court services can still have fees.",
-      NS: "Nova Scotia: probate tax is charged by estate-value band. Above $100,000 it is $1,002.65 plus $16.95 for every $1,000 or part over $100,000. Royal Gazette advertising is a separate post-grant cost.",
-      NB: "New Brunswick (applications filed on or after June 12, 2026): $200 up to $20,000; then $5 per $1,000 or part over $20,000 through $100,000; above $100,000, $600 plus $15 per $1,000 or part over $100,000.",
-      NL: "Newfoundland and Labrador: $60 where the estate value does not exceed $1,000; above $1,000, $60 plus $0.60 for each additional $100 in value (0.6% of the portion over $1,000).",
-      PE: "Prince Edward Island: $50 up to $10,000; $100 to $25,000; $200 to $50,000; $400 to $100,000; above $100,000, $400 plus $4 per $1,000 or fraction over $100,000.",
-      QC: "Quebec: no estate-value probate tax. A notarial will does not need probate; holograph and witnessed wills require verification. Current RDPRM fees shown by Quebec are $59 for liquidator designation and $59 for each listed closure notice; other costs vary.",
-      YT: "Yukon: no grant fee where the estate does not exceed $25,000; $140 for a grant, ancillary grant or resealing where the estate exceeds $25,000.",
-      NT: "Northwest Territories: $30 up to $10,000; $110 to $25,000; $215 to $125,000; $325 to $250,000; $435 above $250,000. A separate Rule 10 small-estate declaration route exists where net value reasonably appears under $35,000.",
-      NU: "Nunavut: $30 up to $10,000; $110 to $25,000; $215 to $125,000; $325 to $250,000; $425 above $250,000. Certified copies, caveats and other services can add separate fees."
-    };
-    const sources = sourcesByProvince[province] || sourcesByProvince.ON;
-    const hint = hintByProvince[province] || hintByProvince.ON;
-    const empty = emptyByProvince[province] || emptyByProvince.ON;
+    const sources = probateSources(province);
+    const hint = probateHint(province);
+    const empty = probateSummary(province);
 
     let resultCard = null;
     if (hasInput && province === "ON") {
