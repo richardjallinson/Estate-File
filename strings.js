@@ -1221,17 +1221,59 @@ const FR = {
   "Open official CRA information": "Ouvrir les renseignements officiels de l’ARC",
   "Open official Canada.ca benefits information": "Ouvrir les renseignements officiels de Canada.ca sur les prestations",
   "Open official CRA clearance information": "Ouvrir les renseignements officiels de l’ARC sur le certificat de décharge",
-  "Open official government information": "Ouvrir les renseignements officiels du gouvernement"
+  "Open official government information": "Ouvrir les renseignements officiels du gouvernement",
+
+  /* V1M — storage failures said out loud. */
+  "Your record is not being saved": "Votre dossier n’est pas enregistré",
+  "This device has run out of room for the estate record. Anything you add now will be lost when you close the app. Make a backup file straight away, then free up space on the device.": "Cet appareil n’a plus d’espace pour le dossier de succession. Tout ce que vous ajoutez maintenant sera perdu à la fermeture de l’application. Créez immédiatement un fichier de sauvegarde, puis libérez de l’espace sur l’appareil.",
+  "The app cannot write to this device's storage. Anything you add now will be lost when you close the app. Make a backup file straight away.": "L’application n’arrive pas à écrire dans le stockage de cet appareil. Tout ce que vous ajoutez maintenant sera perdu à la fermeture de l’application. Créez immédiatement un fichier de sauvegarde.",
+  "This device is almost out of room": "Cet appareil manque presque d’espace",
+  "The estate record is close to the space this app is allowed. Make a backup file now, and consider removing document photographs you no longer need.": "Le dossier de succession approche de l’espace alloué à cette application. Créez un fichier de sauvegarde dès maintenant et envisagez de supprimer les photographies de documents dont vous n’avez plus besoin.",
+  "The saved record could not be read": "Le dossier enregistré n’a pas pu être lu",
+  "The estate record on this device was damaged and could not be opened, so the app has started an empty one. The damaged copy has been kept and has not been overwritten. If you have a backup file, restore it from Settings before adding anything new.": "Le dossier de succession de cet appareil était endommagé et n’a pas pu être ouvert; l’application en a donc commencé un nouveau, vide. La copie endommagée a été conservée et n’a pas été écrasée. Si vous avez un fichier de sauvegarde, restaurez-le à partir des Réglages avant d’ajouter quoi que ce soit.",
+  "Make a backup now": "Créer une sauvegarde maintenant",
+  "Dismiss": "Fermer",
+
+  /* V1M — whole sentences instead of a stem plus a bolted-on "s". */
+  ". Check the authoritative source before relying on the estimate: ": ". Vérifiez la source officielle avant de vous fier à l’estimation : ",
+  ". Check the authoritative sources before relying on the estimate: ": ". Vérifiez les sources officielles avant de vous fier à l’estimation : ",
+
+  /* V1M — the province name carries its own French article via provinceNamed(). */
+  "The Probate tab uses the published fee rules for ": "L’onglet Homologation utilise les règles de frais publiées pour ",
+  ", checked in ": ", vérifiées en ",
+
+  /* V1M — the month RATES_READ names is part of the sentence, so it is
+     translated rather than concatenated raw into French text. */
+  "August 2026": "août 2026",
+
+  /* V1M — jurisdiction abbreviations. These are identical in both languages
+     (Canada Post codes are bilingual), but they are listed explicitly rather
+     than left to fall through, so the coverage test can tell "deliberately the
+     same" apart from "nobody translated it yet". */
+  "ON": "ON",
+  "ONT": "ONT",
+  "AB": "AB",
+  "SK": "SK",
+  "MB": "MB",
+  "QC": "QC",
+  "YT": "YT",
+  "NU": "NU",
+  "211 P.E.I.": "211 Î.-P.-É."
 };
 
 const FR_MISSES = new Set();
 let LANG = "en";
 function setLang(l) { LANG = (l === "fr") ? "fr" : "en"; }
 function getLang() { return LANG; }
+// A miss is any Latin-letter string with no French entry. This used to require
+// three consecutive letters, which quietly exempted short fragments — and that
+// is exactly how t("s"), bolted onto "source" to pluralise it, shipped a French
+// build reading "la source officielles". One letter is enough to be wrong, so
+// one letter is enough to record.
 function t(s) {
   if (LANG !== "fr") return s;
   if (Object.prototype.hasOwnProperty.call(FR, s)) return FR[s];
-  if (typeof s === "string" && /[A-Za-z]{3}/.test(s)) FR_MISSES.add(s);
+  if (typeof s === "string" && /[A-Za-z]/.test(s)) FR_MISSES.add(s);
   return s;
 }
 function frUrl(url) {

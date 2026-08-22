@@ -103,17 +103,12 @@ const font = {
   body: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 };
 
-// The maple leaf mark. This is the leaf outline from the National Flag of
-// Canada as published in Wikimedia's public-domain Flag_of_Canada.svg: the
-// 1965 design's Crown copyright has expired and the file is tagged
-// ineligible for copyright. Earlier versions hand-drew an approximation; a
-// shape this famous has no margin for approximation. The app uses the leaf
-// alone, respectfully, and none of the government's identity marks: no flag
-// composition, no wordmark, no government insignia, and the About text states the
-// non-affiliation plainly. tools/leaf.py renders the app icons from this
-// same path, so the home-screen icon and this mark are literally the same
-// shape. Decorative, so hidden from screen readers; the wordmark beside it
-// carries the name.
+// Estate File Canada maple-leaf mark. This is an original, simplified
+// geometric leaf drawn specifically for this app. It deliberately does not
+// reproduce the official 11-point National Flag of Canada leaf. The red
+// colour and leaf motif communicate Canadian context without presenting the
+// app as a Government of Canada service. Decorative only; the adjacent
+// wordmark carries the accessible app name.
 // ---- Text size.
 //
 // Every font size in this app goes through fs(). The scale is a module-level
@@ -168,8 +163,8 @@ function wordCount(value) {
   return text ? text.split(/\s+/).length : 0;
 }
 
-const LEAF_VIEWBOX = "148 115 108 115";
-const LEAF_PATH = "m201.9 116.1-9.1 17.4c-1 1.8-2.9 1.7-4.7.7l-6.6-3.4 4.9 26c1 4.8-2.3 4.8-4 2.7l-11.5-12.9-1.9 6.5c-.2.9-1.2 1.8-2.6 1.6l-14.5-3 3.8 13.9c.8 3.1 1.4 4.3-.8 5.1l-5.2 2.4 25 20.3c1 .8 1.5 2.2 1.1 3.5l-2.2 7.2c8.6-1 16.3-2.5 24.9-3.4.8-.1 2 1.2 2 2.1l-1.1 26.3h4.2l-.7-26.2c0-.9 1.1-2.3 1.9-2.2 8.6.9 16.3 2.4 24.9 3.4l-2.2-7.2c-.4-1.3.1-2.7 1.1-3.5l25-20.3-5.2-2.4c-2.2-.8-1.6-2-.8-5.1l3.8-13.9-14.5 3c-1.4.2-2.4-.7-2.6-1.6l-1.9-6.5-11.5 12.9c-1.7 2.1-5 2.1-4-2.7l4.9-26-6.6 3.4c-1.8 1-3.7 1.1-4.7-.7z";
+const LEAF_VIEWBOX = "0 0 100 112";
+const LEAF_PATH = "M50 3 L59 25 L70 18 L68 39 L88 31 L80 51 L97 55 L79 70 L84 88 L61 82 L57 98 L54 98 L54 110 L46 110 L46 98 L43 98 L39 82 L16 88 L21 70 L3 55 L20 51 L12 31 L32 39 L30 18 L41 25 Z";
 const MapleLeaf = (props) => h("svg", {
   viewBox: LEAF_VIEWBOX,
   width: props.size || 28, height: props.size || 28,
@@ -237,10 +232,61 @@ function benefitCategories(province) {
 // information, not legal advice.
 const RATES_READ = "August 2026";
 
+// RATES_READ used to be concatenated raw into French sentences, so the French
+// build read "vérifiés en August 2026". The month is part of the sentence, so
+// it goes through the translation layer like every other part of it.
+const ratesRead = () => t(RATES_READ);
+
+// A French province name needs its article, and which article depends on the
+// name's gender and initial letter: l'Ontario, le Manitoba, la Saskatchewan,
+// les Territoires du Nord-Ouest, and Terre-Neuve-et-Labrador with none at all.
+// Nothing derives this from the English label, so it is a table. Sentences
+// supply their own preposition ("for" / "pour"), which is why the article is
+// stored bare: "pour" takes no contraction, so the pieces compose cleanly in
+// both languages. English needs no article, so it returns the plain name.
+const PROVINCE_ARTICLE_FR = {
+  ON: "l'Ontario",
+  BC: "la Colombie-Britannique",
+  AB: "l'Alberta",
+  SK: "la Saskatchewan",
+  MB: "le Manitoba",
+  NS: "la Nouvelle-Écosse",
+  NB: "le Nouveau-Brunswick",
+  NL: "Terre-Neuve-et-Labrador",
+  PE: "l'Île-du-Prince-Édouard",
+  QC: "le Québec",
+  YT: "le Yukon",
+  NT: "les Territoires du Nord-Ouest",
+  NU: "le Nunavut"
+};
+function provinceNamed(id) {
+  const p = normaliseProvinceId(id);
+  if (getLang() === "fr") return PROVINCE_ARTICLE_FR[p] || t(provinceDef(p).label);
+  return provinceDef(p).label;
+}
+
+// Fee schedules do not wait for January. New Brunswick's probate tax changed
+// on 12 June 2026, mid-year; the old year-boundary check would have called
+// August 2026 figures current until the following January. Elapsed months is
+// the honest measure. Nine is a deliberate compromise: long enough not to nag
+// about a release that is still accurate, short enough that a mid-year change
+// is flagged inside the same year it happened.
+const RATES_STALE_AFTER_MONTHS = 9;
+const MONTH_NAMES = ["january", "february", "march", "april", "may", "june",
+                     "july", "august", "september", "october", "november", "december"];
+function ratesReadDate() {
+  const m = RATES_READ.match(/([A-Za-zéûôa-z]+)\s+(\d{4})/);
+  if (!m) return null;
+  const idx = MONTH_NAMES.indexOf(m[1].toLowerCase());
+  if (idx < 0) return null;
+  return { month: idx, year: Number(m[2]) };
+}
 function ratesAreStale() {
-  const m = RATES_READ.match(/(\d{4})/);
-  if (!m) return true;
-  return new Date().getFullYear() > Number(m[1]);
+  const read = ratesReadDate();
+  if (!read) return true;
+  const now = new Date();
+  const months = (now.getFullYear() - read.year) * 12 + (now.getMonth() - read.month);
+  return months >= RATES_STALE_AFTER_MONTHS;
 }
 
 function benefitLinkText(url) {
@@ -1531,15 +1577,57 @@ function saveLock(o) {
     return true;
   } catch { return false; }
 }
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
-}
+// A record that cannot be written must never look like one that was.
+//
+// The old version swallowed the failure into console.error. In a WKWebView with
+// no inspector that is invisible: React still holds the state, so every screen
+// looks correct, the executor keeps working, and the whole session is gone at
+// the next launch. For an app whose only promise is "your record is kept
+// safely on this device", a silent write failure is the worst defect it can
+// have. saveState now reports, and the app says so on screen.
+const RECOVERY_KEY = "estate-file-v1-unreadable";
+
+// Roughly how much of the ~5MB localStorage budget the record is using. Two
+// bytes per UTF-16 code unit is the right order of magnitude for a warning.
+function recordBytes(json) { return json.length * 2; }
+const STORAGE_BUDGET = 5 * 1024 * 1024;
+const STORAGE_WARN_AT = 0.8;
+
+// null  = fine
+// "full"    = quota exhausted; nothing was written
+// "blocked" = storage unavailable (private mode, disabled, evicted)
+// "near"    = written, but the record is close to the ceiling
 function saveState(state) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  catch (e) { console.error("save failed", e); }
+  let json;
+  try { json = JSON.stringify(state); }
+  catch (e) { return "blocked"; }
+  try {
+    localStorage.setItem(STORAGE_KEY, json);
+  } catch (e) {
+    const name = e && (e.name || e.code);
+    const quota = name === "QuotaExceededError" || name === "NS_ERROR_DOM_QUOTA_REACHED" || name === 22 || name === 1014;
+    return quota ? "full" : "blocked";
+  }
+  return recordBytes(json) > STORAGE_BUDGET * STORAGE_WARN_AT ? "near" : null;
+}
+
+// A record that will not parse is not the same as no record. Returning null
+// used to mean the app opened blank AND the next keystroke overwrote the
+// damaged bytes, so there was nothing left to recover from. Keep the raw text
+// under a separate key first, then tell the person it happened.
+function loadState() {
+  let raw = null;
+  try { raw = localStorage.getItem(STORAGE_KEY); }
+  catch { return { data: null, problem: "blocked" }; }
+  if (!raw) return { data: null, problem: null };
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") throw new Error("not an object");
+    return { data: parsed, problem: null };
+  } catch (e) {
+    try { localStorage.setItem(RECOVERY_KEY, raw); } catch {}
+    return { data: null, problem: "unreadable" };
+  }
 }
 
 const DOC_DB = "estate-file-docs";
@@ -1833,6 +1921,11 @@ function EstateFile() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
 
+  // Storage trouble is deliberately app-level state, not a toast. A toast that
+  // disappears after 2.6 seconds is the wrong shape for "the thing you are
+  // typing is not being kept".
+  const [storageProblem, setStorageProblem] = useState(null);
+
   const [backupOpen, setBackupOpen] = useState(false);
   const [backupText, setBackupText] = useState("");
   const [restoreText, setRestoreText] = useState("");
@@ -1842,7 +1935,8 @@ function EstateFile() {
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2600); };
 
   useEffect(() => {
-    const data = loadState();
+    const { data, problem } = loadState();
+    if (problem) setStorageProblem(problem);
     if (data) {
       if (data.province) setProvince(normaliseProvinceId(data.province));
       if (Array.isArray(data.claims)) setClaims(data.claims);
@@ -1860,7 +1954,10 @@ function EstateFile() {
 
   useEffect(() => {
     if (!loaded) return;
-    saveState({ province, claims, startChecklist, reminders, contacts, redress, evidence, statements, conditions });
+    const problem = saveState({ province, claims, startChecklist, reminders, contacts, redress, evidence, statements, conditions });
+    // A recovered save clears an earlier warning; "unreadable" is about the
+    // previous record and stays until the person dismisses it.
+    setStorageProblem((prev) => (prev === "unreadable" ? prev : problem));
   }, [province, claims, startChecklist, reminders, contacts, redress, evidence, statements, conditions, loaded]);
 
   const claimById = (id) => claims.find((c) => c.id === id) || null;
@@ -3467,7 +3564,15 @@ function EstateFile() {
         t(" Asset ownership, joint interests, beneficiary designations, debts and property outside the jurisdiction can change the legal answer. Use the jurisdiction-specific legal-help route under Help if you are unsure.")),
 
       h("div", { style: { marginTop: 10, fontSize: fs(10.5), color: T.inkSoft, lineHeight: 1.5 } },
-        t("Rates and rules were checked in ") + RATES_READ + t(". Check the authoritative source") + (sources.length > 1 ? t("s") : "") + t(" before relying on the estimate: "),
+        // Two whole sentences rather than a stem plus t("s"). French pluralises
+        // the article as well as the noun ("la source officielle" ->
+        // "les sources officielles"), so a bolted-on "s" produced
+        // "la source officielles". The FR_MISSES check could not catch it
+        // either, because a one-letter string has no letters to detect.
+        t("Rates and rules were checked in ") + ratesRead() +
+        (sources.length > 1
+          ? t(". Check the authoritative sources before relying on the estimate: ")
+          : t(". Check the authoritative source before relying on the estimate: ")),
         sources.map((source, i) => h(React.Fragment, { key: source.url },
           i ? t(" · ") : null,
           h("a", { href: frUrl(source.url).url, target: "_blank", rel: "noopener noreferrer", style: { color: T.blue, fontWeight: 700, textDecoration: "none" } }, t(source.label) + (frUrl(source.url).english ? t(" (page in English)") : ""))
@@ -3532,7 +3637,7 @@ function EstateFile() {
 
     ratesAreStale() ? h("div", {
       style: { background: "#FBEBE8", border: "1px solid " + T.red, borderRadius: 9, padding: "10px 12px", fontSize: fs(11.5), color: T.red, marginBottom: 14, lineHeight: 1.45 }
-    }, t("These amounts were read in ") + RATES_READ + t(". Check the government pages before relying on them.")) : null,
+    }, t("These amounts were read in ") + ratesRead() + t(". Check the government pages before relying on them.")) : null,
 
     benefitCategories(province).map((cat) => {
       const items = benefitsForProvince(province).filter((b) => b.cat === cat.id);
@@ -3853,6 +3958,61 @@ function EstateFile() {
       h("button", { onClick: copyCondExport, style: { padding: "13px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(13), fontWeight: 800, cursor: "pointer" } }, t("Copy")))
   ]);
 
+  // ---- Storage trouble, said out loud.
+  //
+  // This is the one banner in the app that is not dismissible while the
+  // problem is live, because everything the person types while it shows is
+  // being lost. The only useful action is "make a backup now", so that is the
+  // button. The "unreadable" case is about a record that already failed to
+  // load, so that one can be acknowledged and closed.
+  const storageBanner = () => {
+    if (!storageProblem) return null;
+    const copy = {
+      full: {
+        title: t("Your record is not being saved"),
+        body: t("This device has run out of room for the estate record. Anything you add now will be lost when you close the app. Make a backup file straight away, then free up space on the device."),
+        tone: "red"
+      },
+      blocked: {
+        title: t("Your record is not being saved"),
+        body: t("The app cannot write to this device's storage. Anything you add now will be lost when you close the app. Make a backup file straight away."),
+        tone: "red"
+      },
+      near: {
+        title: t("This device is almost out of room"),
+        body: t("The estate record is close to the space this app is allowed. Make a backup file now, and consider removing document photographs you no longer need."),
+        tone: "amber"
+      },
+      unreadable: {
+        title: t("The saved record could not be read"),
+        body: t("The estate record on this device was damaged and could not be opened, so the app has started an empty one. The damaged copy has been kept and has not been overwritten. If you have a backup file, restore it from Settings before adding anything new."),
+        tone: "amber"
+      }
+    }[storageProblem];
+    if (!copy) return null;
+    const accent = copy.tone === "red" ? T.red : T.amber;
+    return h("div", {
+      role: "alert",
+      style: {
+        margin: "12px 16px 0", padding: "13px 14px", borderRadius: 12,
+        background: T.card, border: "2px solid " + accent
+      }
+    },
+      h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: fs(14.5), color: accent, marginBottom: 5 } }, copy.title),
+      h("div", { style: { fontSize: fs(12), lineHeight: 1.55, color: T.ink } }, copy.body),
+      h("div", { style: { display: "flex", gap: 8, marginTop: 11, flexWrap: "wrap" } },
+        h("button", {
+          onClick: () => { setBackupOpen(true); setTab("settings"); },
+          style: { flex: "1 1 auto", minHeight: 44, padding: "0 14px", borderRadius: 10, border: "none", background: accent, color: T.onAccent, fontFamily: font.body, fontSize: fs(12.5), fontWeight: 800, cursor: "pointer" }
+        }, t("Make a backup now")),
+        storageProblem === "unreadable" ? h("button", {
+          onClick: () => setStorageProblem(null),
+          style: { flex: "0 0 auto", minHeight: 44, padding: "0 14px", borderRadius: 10, border: "1px solid " + T.line, background: T.btn2, color: T.ink, fontFamily: font.body, fontSize: fs(12.5), fontWeight: 700, cursor: "pointer" }
+        }, t("Dismiss")) : null
+      )
+    );
+  };
+
   const helpSheet = () => sheet(() => setHelpOpen(false), [
     h("div", { key: "t", style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Help")),
     h("div", { key: "b", style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 14, lineHeight: 1.45 } },
@@ -4067,7 +4227,11 @@ function EstateFile() {
           t(t("The app's address. Open it in Safari on any phone and add it to the home screen.")))),
       t("Estate File Canada is not affiliated with, endorsed by, or connected to any government department, court, law firm or accountancy practice. It reads no file and submits nothing on your behalf. It is a private place to keep your own record."),
       h("div", { style: { marginTop: 8 } },
-        province === "QC" ? t("The Succession tab uses published Quebec succession rules checked in ") + RATES_READ + t(". Quebec has no estate-value probate tax; the app records the civil-law process and known public registration fees without pretending to price notary or court work.") : t("The Probate tab uses the published ") + t(provinceDef(province).label) + t(" fee rules checked in ") + RATES_READ + t(". It shows arithmetic on a value you enter. It does not decide what the estate is worth, whether a court grant is needed, or how any asset passes. Those are legal questions.")),
+        province === "QC"
+          ? t("The Succession tab uses published Quebec succession rules checked in ") + ratesRead() + t(". Quebec has no estate-value probate tax; the app records the civil-law process and known public registration fees without pretending to price notary or court work.")
+          // provinceNamed() carries the French article. The old build read
+          // "les règles publiées sur les Ontario".
+          : t("The Probate tab uses the published fee rules for ") + provinceNamed(province) + t(", checked in ") + ratesRead() + t(". It shows arithmetic on a value you enter. It does not decide what the estate is worth, whether a court grant is needed, or how any asset passes. Those are legal questions.")),
       h("div", { style: { marginTop: 8 } },
         t("Nothing here is legal, tax or financial advice. Benefit eligibility is decided by the responsible government authority; legal questions about the will, probate or a Quebec succession belong with a qualified legal professional.")),
       h("div", { style: { marginTop: 8 } },
@@ -4586,6 +4750,8 @@ function EstateFile() {
         })
       )
     ),
+
+    storageBanner(),
 
     tab === "start" ? startScreen() : null,
     tab === "claims" ? (openClaim ? claimDetail() : claimsScreen()) : null,

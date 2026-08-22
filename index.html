@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<!-- No maximum-scale. Blocking pinch-zoom contradicts everything else this app
+     does for accessibility, and the people using it are frequently older or
+     grieving and reading small print on a phone. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Estate File Canada — An Executor's Own Record</title>
 <meta name="description" content="Estate File Canada: a private, offline record for executors settling an estate. Track tasks, dates, documents, contacts, assets, benefits and probate / succession progress on your device." />
 <link rel="manifest" href="manifest.json" />
