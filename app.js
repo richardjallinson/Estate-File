@@ -47,6 +47,8 @@ const PALETTES = {
   blue: "#4166AB",
   blueSoft: "#EFF2F8",
   tabIdle: "#C9CFDE",
+  disabled: "#B9BDCB",
+  onDisabled: "#3E4354",
     // Semantic tokens, split out so day and night can disagree.
     heading: "#141A33",   // display headings; navy by day, near-cream by night
     header: "#141A33",    // the chrome: header bar, lock screen, intro
@@ -71,7 +73,9 @@ const PALETTES = {
     amber: "#D2A254",
     blue: "#8FABE0",
     blueSoft: "#1B2542",
-    tabIdle: "#6A7291",
+    tabIdle: "#828DAE",
+    disabled: "#3A4266",
+    onDisabled: "#AEB6D0",
     heading: "#F0EDE2",
     header: "#0C1020",
     primary: "#3D4A7E",
@@ -3035,7 +3039,7 @@ function EstateFile() {
     return h("div", { style: { padding: 16 } },
       h("button", {
         onClick: () => setOpenClaim(null),
-        style: { border: "none", background: "transparent", padding: "0 0 10px", color: T.gold, fontFamily: font.body, fontWeight: 800, fontSize: fs(12.5), cursor: "pointer" }
+        style: { border: "none", background: "transparent", padding: "0 0 10px", color: T.amber, fontFamily: font.body, fontWeight: 800, fontSize: fs(12.5), cursor: "pointer" }
       }, t("\u2039 All steps")),
 
       h("div", { style: { fontFamily: font.display, fontSize: fs(23), color: T.heading, lineHeight: 1.15 } }, c.condition),
@@ -3403,7 +3407,7 @@ function EstateFile() {
               h(DocThumb, { doc: d }),
               h("div", { style: { fontSize: fs(9.5), color: T.inkSoft, padding: "4px 5px", lineHeight: 1.3, overflowWrap: "anywhere" } },
                 d.title,
-                d.claimId && claimById(d.claimId) ? h("span", { style: { display: "block", color: T.gold } }, claimById(d.claimId).condition) : null)
+                d.claimId && claimById(d.claimId) ? h("span", { style: { display: "block", color: T.amber } }, claimById(d.claimId).condition) : null)
             ))
           )
     );
@@ -3458,7 +3462,7 @@ function EstateFile() {
           h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.taxable))),
         h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estate Administration Tax")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))));
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, money(calc.total))));
     } else if (hasInput && province === "BC") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 8 } },
@@ -3469,14 +3473,14 @@ function EstateFile() {
           h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.courtFee))),
         h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estimated court + probate fees")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("This total does not include a wills search, alias searches, optional courier charges, electronic-filing fees or other case-specific court charges.")));
     } else if (hasInput && province === "AB") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Court fee for the grant")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("This is the published fee for issuing a grant of probate or administration based on the net value of property in Alberta. Other court services can have separate fees.")));
     } else if (hasInput && province === "SK") {
@@ -3489,63 +3493,63 @@ function EstateFile() {
           h("span", { style: { fontFamily: font.body, fontSize: fs(14), fontWeight: 800, color: T.ink } }, money(calc.courtFee))),
         h("div", { style: { borderTop: "1px solid " + T.line, marginTop: 6, paddingTop: 10, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Estimated standard court + probate fees")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("This is the standard grant route only. It does not include the separate $25 Certificate of No Infants fee when requested. A qualifying small estate with personal property of $25,000 or less and no Saskatchewan real property passing through the estate can use a different $100 court-order route.")));
     } else if (hasInput && province === "MB") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Probate / administration application charge")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("Manitoba eliminated charges relating to applications for probate or administration effective November 6, 2020. Separate court services such as caveats, searches and certified documents can still have fees. Estates of $10,000 or less may also qualify for the separate section 47 summary-administration procedure.")));
     } else if (hasInput && province === "NS") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Nova Scotia probate tax")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, moneyCents(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, moneyCents(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("This is the published probate tax only. The required Royal Gazette Estate Notice currently costs $68.15 including HST and is a separate post-grant expense. Other case-specific court costs can also apply.")));
     } else if (hasInput && province === "NB") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("New Brunswick probate tax")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("These are the rates for applications filed on or after June 12, 2026. Separate sundry Probate Court fees can apply depending on the filing.")));
     } else if (hasInput && province === "NL") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Newfoundland and Labrador court charge")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, moneyCents(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, moneyCents(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("This is the estate-value charge for a grant or resealing. The Supreme Court's own calculator uses the total from Form 56.10A; other court services can have separate fees.")));
     } else if (hasInput && province === "PE") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("P.E.I. standard probate petition fee")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("This is the standard petition fee only. The Probate Act has separate fees for some proceedings and an additional $1 fee for each renunciation or dedimus where probate value exceeds $1,000.")));
     } else if (hasInput && province === "YT") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Yukon grant / resealing fee")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("Appendix C charges no grant fee where the estate does not exceed $25,000 and $140 above that threshold. A $0 fee does not by itself mean a grant is unnecessary.")));
     } else if (hasInput && province === "NT") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("NWT estate administration court fee")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("The standard fee band uses net property in the NWT. Rule 10 also provides a separate small-estate declaration route where net value reasonably appears to be less than $35,000; that is a legal/process choice, not an automatic calculator result.")));
     } else if (hasInput && province === "NU") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
           h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Nunavut probate / administration court fee")),
-          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.amber } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("The fee band uses net property in Nunavut. Certified copies, caveats and other court services have separate fees and are not included here.")));
     } else if (province === "QC") {
@@ -3670,7 +3674,7 @@ function EstateFile() {
           },
             h("div", { style: { fontFamily: font.body, fontSize: fs(13), fontWeight: 800, color: T.ink } }, t(b.name)),
             h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginTop: 3, lineHeight: 1.5 } }, t(b.what)),
-            h("div", { style: { fontSize: fs(11.5), color: T.gold, fontWeight: 700, marginTop: 4 } }, t(b.rate)),
+            h("div", { style: { fontSize: fs(11.5), color: T.amber, fontWeight: 700, marginTop: 4 } }, t(b.rate)),
             h("a", {
               href: frUrl(b.url).url, target: "_blank", rel: "noopener noreferrer",
               style: { display: "inline-block", fontSize: fs(11), color: T.blue, fontWeight: 700, marginTop: 5, textDecoration: "none" }
@@ -3687,7 +3691,7 @@ function EstateFile() {
     h("div", { style: { background: T.goldSoft, border: "1px solid " + T.gold, borderRadius: 10, padding: "12px 14px", fontSize: fs(12), color: T.ink, lineHeight: 1.55, marginBottom: 10 } },
       h("b", null, t("Not sure which of these applies to you?")),
       t(" That is normal. Eligibility depends on the benefit and the person's circumstances. Use the official links for the rules, and ask Service Canada, Retraite Québec when applicable, the CRA, or a qualified professional when you are unsure."),
-      h("div", { style: { marginTop: 7, color: T.inkSoft } }, t("Key phone numbers and legal-help information are under Help, at the top of any screen."))
+      h("div", { style: { marginTop: 7, color: T.ink } }, t("Key phone numbers and legal-help information are under Help, at the top of any screen."))
     ),
 
     h("button", {
@@ -4188,8 +4192,9 @@ function EstateFile() {
       disabled: !(claims.length || conditions.length || contacts.length),
       style: {
         width: "100%", padding: "12px", borderRadius: 10, border: "none",
-        background: (claims.length || conditions.length || contacts.length) ? T.primary : "#B9BDCB",
-        color: "#fff", fontFamily: font.body, fontWeight: 800, fontSize: fs(13.5),
+        background: (claims.length || conditions.length || contacts.length) ? T.primary : T.disabled,
+        color: (claims.length || conditions.length || contacts.length) ? "#fff" : T.onDisabled,
+        fontFamily: font.body, fontWeight: 800, fontSize: fs(13.5),
         cursor: (claims.length || conditions.length || contacts.length) ? "pointer" : "default",
         marginBottom: 8
       }
@@ -4487,10 +4492,10 @@ function EstateFile() {
           t("This checklist is an organizer, not legal, tax or financial advice. Requirements and timing depend on the estate and jurisdiction."))
       ),
       nextTask ? h("section", { style: { background: T.card, border: "2px solid " + T.gold, borderRadius: 16, padding: 16, marginBottom: 16 } },
-        h("div", { style: { fontSize: fs(10.5), fontWeight: 900, color: T.gold, textTransform: "uppercase", letterSpacing: ".05em" } }, t("Next thing to do")),
+        h("div", { style: { fontSize: fs(10.5), fontWeight: 900, color: T.amber, textTransform: "uppercase", letterSpacing: ".05em" } }, t("Next thing to do")),
         h("div", { style: { marginTop: 5, fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t(nextTask.title)),
         h("div", { style: { marginTop: 5, fontSize: fs(11.2), color: T.inkSoft, lineHeight: 1.5 } }, t("This is the first unfinished item in your Start Here checklist.")),
-        h("button", { onClick: () => { setStartOpen(nextTask.id); setTimeout(() => { const el = document.getElementById("start-task-" + nextTask.id); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }, style: { marginTop: 10, width: "100%", padding: "11px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(11.8), fontWeight: 800, cursor: "pointer" } }, t("Open this checklist item"))
+        h("button", { onClick: () => { setStartOpen(nextTask.id); setTimeout(() => { const el = document.getElementById("start-task-" + nextTask.id); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }, style: { marginTop: 10, width: "100%", minHeight: 44, padding: "11px 12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(11.8), fontWeight: 800, cursor: "pointer" } }, t("Open this checklist item"))
       ) : h("section", { style: { background: T.card, border: "2px solid " + T.green, borderRadius: 16, padding: 16, marginBottom: 16 } },
         h("div", { style: { fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t("Checklist complete")),
         h("div", { style: { marginTop: 5, fontSize: fs(11.2), color: T.inkSoft, lineHeight: 1.5 } }, t("All Start Here items are marked complete. Review your estate record and My Tasks for anything still outstanding."))
@@ -4505,7 +4510,7 @@ function EstateFile() {
           h("li", null, h("strong", null, t("Add the basic estate information.")), " ", t("Use Estate to record the person, important contacts, assets, debts and other estate details.")),
           h("li", null, h("strong", null, t("Come back to Start Here.")), " ", t("Work through the checklist from the top down and add dates or notes as you go."))
         ),
-        h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, style: { width: "100%", padding: "12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(12.5), fontWeight: 800, cursor: "pointer" } }, t("Open Settings ⚙︎"))
+        h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, style: { width: "100%", minHeight: 44, padding: "12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(12.5), fontWeight: 800, cursor: "pointer" } }, t("Open Settings ⚙︎"))
       ),
       h("section", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 20 } },
         h("div", { style: { fontFamily: font.display, fontSize: fs(20), fontWeight: 700, color: T.heading } }, t("How to use Estate File Canada")),
@@ -4727,19 +4732,19 @@ function EstateFile() {
         h("div", { style: { width: 42, height: 42, borderRadius: 999, border: "1.5px solid " + T.maple, display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" } },
           h(MapleLeaf, { size: 27, color: T.maple })
         ),
-        h("div", { style: { minWidth: 0, flex: "1 1 auto", fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(24) + "px, " + fs(6.4) + "vw, " + fs(32) + "px)", lineHeight: 1.05, whiteSpace: "nowrap", letterSpacing: -0.25 } }, t("Estate File Canada")),
+        h("div", { style: { minWidth: 0, flex: "1 1 auto", fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(20) + "px, " + fs(6.4) + "vw, " + fs(32) + "px)", lineHeight: 1.05, letterSpacing: -0.25 } }, t("Estate File Canada")),
         h("button", {
           onClick: () => { setTab("settings"); setOpenClaim(null); },
           "aria-label": t("Settings"), "aria-current": tab === "settings" ? "page" : undefined, title: t("Settings"),
-          style: { marginLeft: "auto", flex: "0 0 auto", cursor: "pointer", width: 42, height: 42, padding: 0, background: tab === "settings" ? "rgba(197,154,39,0.14)" : "transparent", border: "1.5px solid " + T.gold, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", color: T.gold, fontFamily: font.body, fontSize: fs(27), fontWeight: 800, lineHeight: 1 }
+          style: { marginLeft: "auto", flex: "0 0 auto", cursor: "pointer", width: 44, height: 44, padding: 0, background: tab === "settings" ? "rgba(197,154,39,0.14)" : "transparent", border: "1.5px solid " + T.gold, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", color: T.gold, fontFamily: font.body, fontSize: fs(27), fontWeight: 800, lineHeight: 1 }
         }, h("span", { "aria-hidden": "true", style: { transform: "translateY(-1px)" } }, "⚙︎"))
       ),
       h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 7, paddingLeft: 52 } },
-        h("button", { onClick: () => setHelpOpen(true), "aria-label": t("Help and phone numbers"), style: { cursor: "pointer", background: "transparent", border: "1px solid rgba(251,248,240,0.45)", borderRadius: 999, padding: "0 11px", minHeight: 34, display: "inline-flex", alignItems: "center", color: T.cream, fontFamily: font.body, fontSize: fs(11), fontWeight: 800 } }, t("Help")),
+        h("button", { onClick: () => setHelpOpen(true), "aria-label": t("Help and phone numbers"), style: { cursor: "pointer", background: "transparent", border: "1px solid rgba(251,248,240,0.45)", borderRadius: 999, padding: "0 13px", minHeight: 44, display: "inline-flex", alignItems: "center", color: T.cream, fontFamily: font.body, fontSize: fs(11), fontWeight: 800 } }, t("Help")),
         h("div", { role: "group", "aria-label": t("Language"), style: { display: "flex", alignItems: "center", border: "1px solid " + T.gold, borderRadius: 999, overflow: "hidden", flex: "0 0 auto" } },
-          [["en", "EN"], ["fr", "FR"]].map((pair) => h("button", { key: pair[0], onClick: () => chooseLang(pair[0]), "aria-pressed": lang === pair[0] ? "true" : "false", lang: pair[0], style: { cursor: "pointer", background: lang === pair[0] ? "rgba(197,154,39,0.15)" : "transparent", border: "none", borderRight: pair[0] === "en" ? "1px solid " + T.gold : "none", padding: "8px 11px", color: lang === pair[0] ? T.gold : T.cream, fontFamily: font.body, fontSize: fs(10.5), fontWeight: 800 } }, pair[1]))
+          [["en", "EN"], ["fr", "FR"]].map((pair) => h("button", { key: pair[0], onClick: () => chooseLang(pair[0]), "aria-pressed": lang === pair[0] ? "true" : "false", lang: pair[0], style: { cursor: "pointer", background: lang === pair[0] ? "rgba(197,154,39,0.15)" : "transparent", border: "none", borderRight: pair[0] === "en" ? "1px solid " + T.gold : "none", padding: "0 13px", minHeight: 44, display: "inline-flex", alignItems: "center", color: lang === pair[0] ? T.gold : T.cream, fontFamily: font.body, fontSize: fs(10.5), fontWeight: 800 } }, pair[1]))
         ),
-        h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, "aria-label": t("Estate province or territory") + ": " + t(provinceDef(province).label), style: { cursor: "pointer", background: "transparent", border: "1px solid rgba(251,248,240,0.45)", borderRadius: 999, padding: "7px 11px", color: T.cream, fontFamily: font.body, fontSize: fs(10.5), fontWeight: 800, flex: "0 0 auto" } }, "◆ ", province === "ON" ? "ONT" : t(provinceDef(province).short))
+        h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, "aria-label": t("Estate province or territory") + ": " + t(provinceDef(province).label), style: { cursor: "pointer", background: "transparent", border: "1px solid rgba(251,248,240,0.45)", borderRadius: 999, padding: "0 13px", minHeight: 44, display: "inline-flex", alignItems: "center", color: T.cream, fontFamily: font.body, fontSize: fs(10.5), fontWeight: 800, flex: "0 0 auto" } }, "◆ ", province === "ON" ? "ONT" : t(provinceDef(province).short))
       ),
       // The tab strip sits in its own relative box so a fade can be laid over
       // the right edge. If the labels ever do overflow, on a smaller phone or
@@ -4755,7 +4760,7 @@ function EstateFile() {
               flex: "0 0 auto", border: "none", background: "transparent", cursor: "pointer",
               // 14 above + text + 10 below + the underline clears 44pt of
               // tappable height without the strip reading as taller.
-              padding: "14px 2px 10px", fontFamily: font.body, fontSize: fs(12.5), letterSpacing: 0.2,
+              padding: "15px 2px 12px", fontFamily: font.body, fontSize: fs(12.5), letterSpacing: 0.2,
               fontWeight: tab === tb.id ? 800 : 600,
               color: tab === tb.id ? T.gold : T.tabIdle,
               borderBottom: "3px solid " + (tab === tb.id ? T.gold : "transparent")
