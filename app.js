@@ -1769,7 +1769,7 @@ function EstateFile() {
   useEffect(() => {
     try {
       document.documentElement.lang = lang;
-      document.title = lang === "fr" ? "Dossier successoral — Votre propre dossier" : "Estate File — An Executor's Own Record";
+      document.title = lang === "fr" ? "Dossier successoral — Votre propre dossier" : "Estate File Canada — An Executor's Own Record";
     } catch {}
   }, [lang]);
 
@@ -2589,7 +2589,7 @@ function EstateFile() {
         const data = JSON.parse(String(reader.result));
         const rec = data.record || data;
         if (!rec || (!Array.isArray(rec.claims) && !Array.isArray(rec.conditions))) {
-          flash(t("That does not look like an Estate File backup."));
+          flash(t("That does not look like an Estate File Canada backup."));
           setFullBackupBusy(false);
           return;
         }
@@ -2618,7 +2618,7 @@ function EstateFile() {
         };
         next(0);
       } catch {
-        flash(t("That does not look like an Estate File backup."));
+        flash(t("That does not look like an Estate File Canada backup."));
         setFullBackupBusy(false);
       }
     };
@@ -2642,7 +2642,7 @@ function EstateFile() {
       if (Array.isArray(data.conditions)) setConditions(data.conditions);
       setBackupOpen(false);
       flash(t("Restored. Documents are not in the backup."));
-    } catch { flash(t("That does not look like an Estate File backup.")); }
+    } catch { flash(t("That does not look like an Estate File Canada backup.")); }
   };
 
   // ---- One line of time.
@@ -3903,11 +3903,11 @@ function EstateFile() {
     )),
 
     h("div", { key: "c", style: { fontSize: fs(10.5), color: T.inkSoft, lineHeight: 1.45, marginTop: 4 } },
-      t("Estate File is not affiliated with any government department, law firm or organisation on this page. These numbers are published by the organisations themselves.")),
+      t("Estate File Canada is not affiliated with any government department, law firm or organisation on this page. These numbers are published by the organisations themselves.")),
 
     h("div", { key: "guide", style: { marginTop: 18 } },
       h("div", { style: { fontFamily: font.display, fontSize: fs(16), color: T.heading, marginBottom: 3 } },
-        t("Using Estate File")),
+        t("Using Estate File Canada")),
       h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 8, lineHeight: 1.5 } },
         t("Your own organised record of estate steps, inventory items, documents, dates, benefits and probate progress. It is not connected to any government service.")),
       h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 10, overflow: "hidden" } },
@@ -4052,7 +4052,7 @@ function EstateFile() {
 
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("About")),
     h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 10, padding: "12px 14px", fontSize: fs(12), color: T.inkSoft, lineHeight: 1.55 } },
-      h("div", { style: { color: T.ink, fontFamily: font.body, fontSize: fs(13), marginBottom: 6 } }, t("Estate File "), APP_VERSION),
+      h("div", { style: { color: T.ink, fontFamily: font.body, fontSize: fs(13), marginBottom: 6 } }, t("Estate File Canada "), APP_VERSION),
       // The app's address, written where somebody will look for it: for
       // putting it on another phone or sharing it with a co-executor. A link
       // and selectable text both, because a
@@ -4065,7 +4065,7 @@ function EstateFile() {
         }, "estate-file-wheat.vercel.app"),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 2, lineHeight: 1.45 } },
           t(t("The app's address. Open it in Safari on any phone and add it to the home screen.")))),
-      t("Estate File is not affiliated with, endorsed by, or connected to any government department, court, law firm or accountancy practice. It reads no file and submits nothing on your behalf. It is a private place to keep your own record."),
+      t("Estate File Canada is not affiliated with, endorsed by, or connected to any government department, court, law firm or accountancy practice. It reads no file and submits nothing on your behalf. It is a private place to keep your own record."),
       h("div", { style: { marginTop: 8 } },
         province === "QC" ? t("The Succession tab uses published Quebec succession rules checked in ") + RATES_READ + t(". Quebec has no estate-value probate tax; the app records the civil-law process and known public registration fees without pretending to price notary or court work.") : t("The Probate tab uses the published ") + t(provinceDef(province).label) + t(" fee rules checked in ") + RATES_READ + t(". It shows arithmetic on a value you enter. It does not decide what the estate is worth, whether a court grant is needed, or how any asset passes. Those are legal questions.")),
       h("div", { style: { marginTop: 8 } },
@@ -4435,7 +4435,7 @@ function EstateFile() {
     },
       h("div", { style: { width: "100%", maxWidth: 340, textAlign: "center" } },
         h(MapleLeaf, { size: fs(54), style: { margin: "0 auto 14px" } }),
-        h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: fs(26), marginBottom: 4 } }, t("Estate File")),
+        h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: fs(26), marginBottom: 4 } }, t("Estate File Canada")),
         h("div", { style: { fontSize: fs(12), opacity: 0.72, marginBottom: 20, lineHeight: 1.5 } },
           t("Enter your PIN to open your file.")),
         h("input", {
@@ -4498,7 +4498,7 @@ function EstateFile() {
       h("div", { style: { display: "flex", alignItems: "center", gap: 11 } },
         h(MapleLeaf, { size: 28, style: { flex: "0 0 auto" } }),
         h("div", { style: { minWidth: 0, display: "flex", alignItems: "center", gap: 8 } },
-          h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(24) + "px, " + fs(7) + "vw, " + fs(30) + "px)", lineHeight: 1.15, whiteSpace: "nowrap" } }, t("Estate File")),
+          h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(20) + "px, " + fs(5.5) + "vw, " + fs(26) + "px)", lineHeight: 1.15, whiteSpace: "nowrap" } }, t("Estate File Canada")),
           h("span", { "aria-label": t("Estate province or territory") + ": " + t(provinceDef(province).label), style: { flex: "0 0 auto", padding: "3px 7px", borderRadius: 7, border: "1px solid " + T.gold, color: T.gold, fontFamily: font.body, fontSize: fs(9.5), fontWeight: 800, lineHeight: 1.2, letterSpacing: 0.3 } }, province === "ON" ? "ONT" : t(provinceDef(province).short))
         ),
         h("button", {
