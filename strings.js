@@ -1,4 +1,4 @@
-/* Estate File v1O — English/French language layer.
+/* Estate File v1P — English/French language layer.
 
    English source text stays in app.js. t("...") returns the French version
    when the interface is French and the English source otherwise. A missing
@@ -1303,7 +1303,7 @@ const FR = {
   "NU": "NU",
   "211 P.E.I.": "211 Î.-P.-É.",
 
-  /* V1O — Start Here refinements from real-user testing: the completion-date
+  /* V1P — Start Here refinements from real-user testing: the completion-date
      prompt, "Skip for now", "Doesn't apply", the honest progress line, and
      the retitled Service Canada task with its repayment caution. */
   "Plus ": "Plus ",

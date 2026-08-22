@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1O";
+const APP_VERSION = "v1P";
 
 // ---- Day and night.
 //
@@ -4473,7 +4473,7 @@ function EstateFile() {
     setStartChecklist((cur) => ({ ...cur, [id]: { ...(cur[id] || {}), ...patch } }));
   };
   // Bonnie's interaction, kept exactly: tap the box, the checkmark fills.
-  // What V1O adds is the question she asked for — "when was this completed?" —
+  // What V1P adds is the question she asked for — "when was this completed?" —
   // as an inline prompt rather than a silent assumption of today. The date is
   // still set to today immediately, so ignoring the prompt is safe; answering
   // it corrects the record for work done last week.
@@ -4559,7 +4559,7 @@ function EstateFile() {
         ),
         h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, style: { width: "100%", minHeight: 44, padding: "12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(12.5), fontWeight: 800, cursor: "pointer" } }, t("Open Settings ⚙︎"))
       ),
-      // The menu guide lived here as a full card until V1O. It duplicated the
+      // The menu guide lived here as a full card until V1P. It duplicated the
       // guide already inside Help, and it sat between the person and the
       // checklist that is this screen's whole purpose. Charlie's read, after
       // real-user testing: the landing screen should feel like "your list",
@@ -4589,7 +4589,7 @@ function EstateFile() {
                   style: { width: 58, flex: "0 0 58px", border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }
                 }, h("span", { "aria-hidden": "true", style: { width: 27, height: 27, borderRadius: 7, border: "2px solid " + (rec.done ? T.green : rec.status === "na" ? T.line : T.inkSoft), background: rec.done ? T.green : "transparent", color: rec.done ? T.onAccent : rec.status === "na" ? T.inkSoft : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: fs(18), lineHeight: 1 } }, rec.status === "na" ? "—" : "✓")),
                 h("button", {
-                  onClick: () => setStartOpen(open ? null : task.id),
+                  onClick: () => { setStartOpen(open ? null : task.id); if (!open) setDatePrompt(null); },
                   "aria-expanded": open ? "true" : "false",
                   style: { flex: 1, minWidth: 0, textAlign: "left", border: "none", background: "transparent", padding: "13px 12px 13px 0", cursor: "pointer", color: T.ink }
                 },
@@ -4602,7 +4602,7 @@ function EstateFile() {
                     : t("Tap for date, notes and details"))
                 )
               ),
-              datePrompt === task.id && rec.done ? h("div", { style: { borderTop: "1px solid " + T.line, background: T.goldSoft, padding: "11px 14px 14px 58px" } },
+              datePrompt === task.id && rec.done && !open ? h("div", { style: { borderTop: "1px solid " + T.line, background: T.goldSoft, padding: "11px 14px 14px 58px" } },
                 h("div", { style: { fontSize: fs(11.5), fontWeight: 800, color: T.ink, marginBottom: 8 } }, t("When was this completed?")),
                 h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } },
                   h("button", {
