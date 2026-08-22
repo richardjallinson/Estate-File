@@ -4493,66 +4493,46 @@ function EstateFile() {
     // header. Enough to say where the app is from; anything louder would
     // start to look like it was issued by the government, which it must not.
     h("div", { style: { background: T.header, color: T.cream, padding: "calc(10px + env(safe-area-inset-top)) 16px 0", borderBottom: "2px solid " + T.maple } },
-      // Title and Help sit on one row. Help is reachable from every screen
-      // rather than buried in a tab, because the moment someone needs the
-      // crisis line is not the moment to go looking for it.
-      h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 } },
-        h("div", { style: { minWidth: 0, display: "flex", alignItems: "flex-start", gap: 11 } },
-          h(MapleLeaf, { size: 28, style: { marginTop: 5 } }),
-          h("div", { style: { minWidth: 0 } },
-            // The wordmark must not break in half. Keep it on one line and
-            // let it shrink on narrow phones rather than wrapping the title.
-            h("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 } },
-              h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(21) + "px, " + fs(5.6) + "vw, " + fs(30) + "px)", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, t("Estate File")),
-              h("span", { "aria-label": t("Estate province or territory") + ": " + t(provinceDef(province).label), style: { flex: "0 0 auto", padding: "3px 7px", borderRadius: 7, border: "1px solid " + T.gold, color: T.gold, fontFamily: font.body, fontSize: fs(9.5), fontWeight: 800, lineHeight: 1.2, letterSpacing: 0.3 } }, province === "ON" ? "ONT" : t(provinceDef(province).short))
-            ),
-            h("div", { style: { fontSize: fs(12.5), opacity: 0.72, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, t("An executor's own record"))
-          )
+      // Keep the brand and jurisdiction dominant on narrow phones. The utility
+      // controls use a second row so the app name and subtitle never truncate.
+      h("div", { style: { display: "flex", alignItems: "center", gap: 11 } },
+        h(MapleLeaf, { size: 28, style: { flex: "0 0 auto" } }),
+        h("div", { style: { minWidth: 0, display: "flex", alignItems: "center", gap: 8 } },
+          h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(24) + "px, " + fs(7) + "vw, " + fs(30) + "px)", lineHeight: 1.15, whiteSpace: "nowrap" } }, t("Estate File")),
+          h("span", { "aria-label": t("Estate province or territory") + ": " + t(provinceDef(province).label), style: { flex: "0 0 auto", padding: "3px 7px", borderRadius: 7, border: "1px solid " + T.gold, color: T.gold, fontFamily: font.body, fontSize: fs(9.5), fontWeight: 800, lineHeight: 1.2, letterSpacing: 0.3 } }, province === "ON" ? "ONT" : t(provinceDef(province).short))
         ),
-        h("div", { style: { flex: "0 0 auto", display: "flex", alignItems: "center", gap: 10, marginTop: 4 } },
-          h("div", {
-            role: "group",
-            "aria-label": t("Language"),
-            style: { display: "flex", alignItems: "center", gap: 5 }
-          },
+        h("button", {
+          onClick: () => { setTab("settings"); setOpenClaim(null); },
+          "aria-label": t("Settings"),
+          "aria-current": tab === "settings" ? "page" : undefined,
+          title: t("Settings"),
+          style: {
+            marginLeft: "auto", flex: "0 0 auto", cursor: "pointer", width: 42, height: 42, padding: 0,
+            background: tab === "settings" ? "rgba(197,154,39,0.14)" : "transparent",
+            border: "1px solid " + (tab === "settings" ? T.gold : "rgba(251,248,240,0.4)"),
+            borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center",
+            color: tab === "settings" ? T.gold : T.cream, fontFamily: font.body, fontSize: fs(20), fontWeight: 700, lineHeight: 1
+          }
+        }, h("span", { "aria-hidden": "true" }, "⚙︎"))
+      ),
+      h("div", { style: { display: "flex", alignItems: "center", gap: 10, marginTop: 3, paddingLeft: 39 } },
+        h("div", { style: { minWidth: 0, flex: "1 1 auto", fontSize: fs(12.5), opacity: 0.72, whiteSpace: "nowrap" } }, t("An executor's own record")),
+        h("div", { style: { flex: "0 0 auto", display: "flex", alignItems: "center", gap: 8 } },
+          h("div", { role: "group", "aria-label": t("Language"), style: { display: "flex", alignItems: "center", gap: 3 } },
             [["en", "EN"], ["fr", "FR"]].map((pair, i) => [
-              i ? h("span", { key: "sep", "aria-hidden": "true", style: { color: T.cream, opacity: 0.3, fontFamily: font.body, fontSize: fs(11) } }, "|") : null,
+              i ? h("span", { key: "sep", "aria-hidden": "true", style: { color: T.cream, opacity: 0.3, fontFamily: font.body, fontSize: fs(10.5) } }, "|") : null,
               h("button", {
                 key: pair[0], onClick: () => chooseLang(pair[0]),
                 "aria-pressed": lang === pair[0] ? "true" : "false", lang: pair[0],
-                style: {
-                  cursor: "pointer", background: "transparent", border: "none",
-                  padding: "15px 6px", margin: "-9px -2px", color: T.cream, fontFamily: font.body, fontSize: fs(11.5),
-                  fontWeight: lang === pair[0] ? 800 : 600, opacity: lang === pair[0] ? 1 : 0.55,
-                  textDecoration: lang === pair[0] ? "underline" : "none"
-                }
+                style: { cursor: "pointer", background: "transparent", border: "none", padding: "9px 5px", color: T.cream, fontFamily: font.body, fontSize: fs(11), fontWeight: lang === pair[0] ? 800 : 600, opacity: lang === pair[0] ? 1 : 0.55, textDecoration: lang === pair[0] ? "underline" : "none" }
               }, pair[1])
             ])
           ),
           h("button", {
             onClick: () => setHelpOpen(true),
             "aria-label": t("Help and phone numbers"),
-            style: {
-              flex: "0 0 auto", cursor: "pointer",
-              background: "transparent", border: "1px solid rgba(251,248,240,0.4)",
-              borderRadius: 999, padding: "0 12px", minHeight: 44,
-              display: "inline-flex", alignItems: "center",
-              color: T.cream, fontFamily: font.body, fontSize: fs(12), fontWeight: 800
-            }
-          }, t("Help")),
-          h("button", {
-            onClick: () => { setTab("settings"); setOpenClaim(null); },
-            "aria-label": t("Settings"),
-            "aria-current": tab === "settings" ? "page" : undefined,
-            title: t("Settings"),
-            style: {
-              flex: "0 0 auto", cursor: "pointer", width: 44, height: 44, padding: 0,
-              background: tab === "settings" ? "rgba(197,154,39,0.14)" : "transparent",
-              border: "1px solid " + (tab === "settings" ? T.gold : "rgba(251,248,240,0.4)"),
-              borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center",
-              color: tab === "settings" ? T.gold : T.cream, fontFamily: font.body, fontSize: fs(21), fontWeight: 700, lineHeight: 1
-            }
-          }, h("span", { "aria-hidden": "true" }, "⚙︎"))
+            style: { cursor: "pointer", background: "transparent", border: "1px solid rgba(251,248,240,0.4)", borderRadius: 999, padding: "0 11px", minHeight: 36, display: "inline-flex", alignItems: "center", color: T.cream, fontFamily: font.body, fontSize: fs(11.5), fontWeight: 800 }
+          }, t("Help"))
         )
       ),
       // The tab strip sits in its own relative box so a fade can be laid over
