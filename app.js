@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1N";
+const APP_VERSION = "v1O";
 
 // ---- Day and night.
 //
@@ -4473,7 +4473,7 @@ function EstateFile() {
     setStartChecklist((cur) => ({ ...cur, [id]: { ...(cur[id] || {}), ...patch } }));
   };
   // Bonnie's interaction, kept exactly: tap the box, the checkmark fills.
-  // What V1N adds is the question she asked for — "when was this completed?" —
+  // What V1O adds is the question she asked for — "when was this completed?" —
   // as an inline prompt rather than a silent assumption of today. The date is
   // still set to today immediately, so ignoring the prompt is safe; answering
   // it corrects the record for work done last week.
@@ -4559,7 +4559,7 @@ function EstateFile() {
         ),
         h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, style: { width: "100%", minHeight: 44, padding: "12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(12.5), fontWeight: 800, cursor: "pointer" } }, t("Open Settings ⚙︎"))
       ),
-      // The menu guide lived here as a full card until V1N. It duplicated the
+      // The menu guide lived here as a full card until V1O. It duplicated the
       // guide already inside Help, and it sat between the person and the
       // checklist that is this screen's whole purpose. Charlie's read, after
       // real-user testing: the landing screen should feel like "your list",
@@ -4602,21 +4602,33 @@ function EstateFile() {
                     : t("Tap for date, notes and details"))
                 )
               ),
-              datePrompt === task.id && rec.done ? h("div", { style: { borderTop: "1px solid " + T.line, background: T.goldSoft, padding: "11px 14px 12px 58px" } },
+              datePrompt === task.id && rec.done ? h("div", { style: { borderTop: "1px solid " + T.line, background: T.goldSoft, padding: "11px 14px 14px 58px" } },
                 h("div", { style: { fontSize: fs(11.5), fontWeight: 800, color: T.ink, marginBottom: 8 } }, t("When was this completed?")),
                 h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } },
                   h("button", {
-                    onClick: () => { updateStartTask(task.id, { date: todayISO() }); setDatePrompt(null); },
+                    onClick: () => updateStartTask(task.id, { date: todayISO() }),
                     style: { minHeight: 44, padding: "0 16px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(12), fontWeight: 800, cursor: "pointer" }
                   }, t("Today")),
                   h("input", {
                     type: "date", value: rec.date || "", "aria-label": t("Choose the completion date"),
-                    onInput: (e) => { updateStartTask(task.id, { date: e.currentTarget.value }); },
-                    onChange: () => setDatePrompt(null),
+                    onInput: (e) => updateStartTask(task.id, { date: e.currentTarget.value }),
                     style: { ...inputStyle(), minHeight: 44, flex: "1 1 150px" }
                   })),
                 h("div", { style: { fontSize: fs(9.8), color: T.inkSoft, marginTop: 6, lineHeight: 1.4 } },
-                  t("Today is already recorded — change it only if this happened on another day."))) : null,
+                  t("Today is already recorded — change it only if this happened on another day.")),
+                h("div", { style: { marginTop: 12 } },
+                  h("label", { style: { display: "block", fontSize: fs(11.5), fontWeight: 800, color: T.ink, marginBottom: 6 } }, t("Notes")),
+                  h("textarea", {
+                    value: rec.notes || "", rows: 3,
+                    "aria-label": t("Notes"),
+                    placeholder: t("Add a note, reference number, person you spoke with, or what still needs to happen"),
+                    onInput: (e) => updateStartTask(task.id, { notes: e.currentTarget.value }),
+                    style: { ...inputStyle(), width: "100%", resize: "vertical", lineHeight: 1.45, background: T.card }
+                  })),
+                h("button", {
+                  onClick: () => setDatePrompt(null),
+                  style: { marginTop: 10, minHeight: 42, width: "100%", padding: "9px 12px", borderRadius: 10, border: "1px solid " + T.line, background: T.btn2, color: T.ink, fontFamily: font.body, fontSize: fs(11.5), fontWeight: 800, cursor: "pointer" }
+                }, t("Done"))) : null,
               open ? h("div", { style: { borderTop: "1px solid " + T.line, padding: "13px 14px 15px 58px" } },
                 h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5, marginBottom: task.url ? 6 : 12 } }, t(task.detail)),
                 task.url ? h("a", { href: task.url, target: "_blank", rel: "noopener noreferrer", style: { display: "inline-block", marginBottom: 12, color: T.blue, fontSize: fs(10.8), fontWeight: 800 } }, t(task.urlLabel || "Open official government information")) : null,
