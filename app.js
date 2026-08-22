@@ -39,6 +39,10 @@ const PALETTES = {
   // token from T.red: the muted red carries warnings and the crisis panel,
   // and the national symbol should not share a colour with an error state.
   maple: "#C8102E",
+  // Soft red surface for warning panels. Split per theme like goldSoft and
+  // blueSoft: a pale pink that carries the muted red by day cannot carry the
+  // lighter night red on a dark ground.
+  redSoft: "#FBEBE8",
   amber: "#9A6B1F",
   blue: "#4166AB",
   blueSoft: "#EFF2F8",
@@ -63,6 +67,7 @@ const PALETTES = {
     green: "#7CBB95",
     red: "#E08A7C",
     maple: "#E23A4B",
+    redSoft: "#2E1A17",
     amber: "#D2A254",
     blue: "#8FABE0",
     blueSoft: "#1B2542",
@@ -3059,7 +3064,7 @@ function EstateFile() {
               style: {
                 width: 17, height: 17, borderRadius: 999, flex: "0 0 auto", marginTop: 1,
                 border: "1.5px solid " + (done || here ? T.gold : T.line),
-                background: done ? T.gold : "#fff",
+                background: done ? T.gold : T.btn2,
                 color: "#fff", fontSize: fs(10), fontWeight: 900, lineHeight: "15px", textAlign: "center"
               }
             }, done ? "\u2713" : ""),
@@ -3185,7 +3190,7 @@ function EstateFile() {
               "aria-hidden": "true",
               style: {
                 width: fs(18), height: fs(18), borderRadius: 5, flex: "0 0 auto", marginTop: 1,
-                border: "1.5px solid " + (on ? T.green : T.line), background: on ? T.green : "#fff",
+                border: "1.5px solid " + (on ? T.green : T.line), background: on ? T.green : T.btn2,
                 color: "#fff", fontSize: fs(11), fontWeight: 900, lineHeight: fs(15) + "px", textAlign: "center"
               }
             }, on ? "\u2713" : ""),
@@ -3353,7 +3358,7 @@ function EstateFile() {
                 "aria-label": r.done ? t("Mark not done") : t("Mark done"),
                 style: {
                   width: 19, height: 19, borderRadius: 5, flex: "0 0 auto", cursor: "pointer",
-                  border: "1.5px solid " + (r.done ? T.green : T.line), background: r.done ? T.green : "#fff",
+                  border: "1.5px solid " + (r.done ? T.green : T.line), background: r.done ? T.green : T.btn2,
                   color: "#fff", fontSize: fs(12), fontWeight: 900, lineHeight: "16px", padding: 0
                 }
               }, r.done ? "\u2713" : ""),
@@ -3649,7 +3654,7 @@ function EstateFile() {
       t(province === "QC" ? "Quebec uses the Québec Pension Plan for its main survivor benefits; federal OAS, CRA and other Canada-wide information still applies. Estate information below follows Quebec succession rules." : "Federal benefits apply across Canada. Provincial or territorial estate information below changes with the estate province or territory selected here and in Settings.")),
 
     ratesAreStale() ? h("div", {
-      style: { background: "#FBEBE8", border: "1px solid " + T.red, borderRadius: 9, padding: "10px 12px", fontSize: fs(11.5), color: T.red, marginBottom: 14, lineHeight: 1.45 }
+      style: { background: T.redSoft, border: "1px solid " + T.red, borderRadius: 9, padding: "10px 12px", fontSize: fs(11.5), color: T.red, marginBottom: 14, lineHeight: 1.45 }
     }, t("These amounts were read in ") + ratesRead() + t(". Check the government pages before relying on them.")) : null,
 
     benefitCategories(province).map((cat) => {
@@ -4122,7 +4127,7 @@ function EstateFile() {
         style: {
           padding: "12px", borderRadius: 10, cursor: "pointer",
           border: "1.5px solid " + (lang === pair[0] ? T.primary : T.line),
-          background: lang === pair[0] ? T.primary : "#fff",
+          background: lang === pair[0] ? T.primary : T.btn2,
           color: lang === pair[0] ? "#fff" : T.ink,
           fontFamily: font.body, fontSize: fs(13.5), fontWeight: lang === pair[0] ? 800 : 600
         }
@@ -4158,7 +4163,7 @@ function EstateFile() {
         style: {
           padding: "12px 10px", borderRadius: 10, cursor: "pointer",
           border: "1.5px solid " + (textSize === s.id ? T.primary : T.line),
-          background: textSize === s.id ? T.primary : "#fff",
+          background: textSize === s.id ? T.primary : T.btn2,
           color: textSize === s.id ? "#fff" : T.ink,
           fontFamily: font.body, fontSize: Math.round(13 * s.scale * 10) / 10,
           fontWeight: textSize === s.id ? 800 : 600
@@ -4266,7 +4271,7 @@ function EstateFile() {
   },
     h("div", {
       onClick: (e) => e.stopPropagation(),
-      style: { background: T.cream, width: "100%", maxHeight: "90vh", overflowY: "auto", borderRadius: "16px 16px 0 0", padding: 18, paddingBottom: "calc(18px + env(safe-area-inset-bottom))" }
+      style: { background: T.bg, width: "100%", maxHeight: "90vh", overflowY: "auto", borderRadius: "16px 16px 0 0", padding: 18, paddingBottom: "calc(18px + env(safe-area-inset-bottom))" }
     }, children)
   );
 
@@ -4449,7 +4454,7 @@ function EstateFile() {
     }),
     h("button", {
       key: "rb", onClick: runRestore, disabled: !restoreText.trim(),
-      style: { width: "100%", marginTop: 8, padding: "12px", borderRadius: 10, border: "1px solid " + T.line, background: restoreText.trim() ? "#fff" : "#F4F1E8", color: T.ink, fontFamily: font.body, fontSize: fs(12.5), fontWeight: 700, cursor: restoreText.trim() ? "pointer" : "default" }
+      style: { width: "100%", marginTop: 8, padding: "12px", borderRadius: 10, border: "1px solid " + T.line, background: restoreText.trim() ? T.btn2 : T.goldSoft, color: T.ink, fontFamily: font.body, fontSize: fs(12.5), fontWeight: 700, cursor: restoreText.trim() ? "pointer" : "default" }
     }, t("Replace everything with this backup"))
   ]);
 
@@ -4705,7 +4710,11 @@ function EstateFile() {
     );
   }
 
-  return h("div", { style: { fontFamily: font.body, color: T.ink, background: T.cream, minHeight: "100vh" } },
+  // T.bg, not T.cream. cream is the brand colour and is deliberately identical
+  // in both palettes; bg is the one that actually flips. Painting the page with
+  // cream left night mode showing near-white headings on a light page at
+  // 1.10:1 while every card and button around them had gone dark.
+  return h("div", { style: { fontFamily: font.body, color: T.ink, background: T.bg, minHeight: "100vh" } },
     h("input", {
       ref: fileRef, type: "file", accept: "image/*,application/pdf,.pdf", multiple: true, onChange: onFileChosen,
       style: { display: "none" }
