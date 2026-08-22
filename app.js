@@ -3447,8 +3447,6 @@ function EstateFile() {
       h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.5 } },
         province === "QC" ? t("Quebec does not use an estate-value probate tax. This screen shows the succession cost structure and the official sources instead of asking for a meaningless estate-value calculation.") : t(p.label) + t(" rules from a value you enter. Arithmetic on published government rates, not a legal decision about what belongs in the estate.")),
 
-      provincePicker(14),
-
       province === "QC" ? null : h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px", marginBottom: 12 } },
         h(Field, { label: t("Estate value for this calculation"), hint: t(hint) },
           h("input", {
@@ -3531,8 +3529,6 @@ function EstateFile() {
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("What exists")),
     h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.5 } },
       t(province === "QC" ? "Quebec uses the Québec Pension Plan for its main survivor benefits; federal OAS, CRA and other Canada-wide information still applies. Estate information below follows Quebec succession rules." : "Federal benefits apply across Canada. Provincial or territorial estate information below changes with the estate province or territory selected here and in Settings.")),
-
-    provincePicker(14),
 
     ratesAreStale() ? h("div", {
       style: { background: "#FBEBE8", border: "1px solid " + T.red, borderRadius: 9, padding: "10px 12px", fontSize: fs(11.5), color: T.red, marginBottom: 14, lineHeight: 1.45 }
@@ -4510,7 +4506,10 @@ function EstateFile() {
           h("div", { style: { minWidth: 0 } },
             // The wordmark must not break in half. Keep it on one line and
             // let it shrink on narrow phones rather than wrapping the title.
-            h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(21) + "px, " + fs(5.6) + "vw, " + fs(30) + "px)", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, t("Estate File")),
+            h("div", { style: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 } },
+              h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(21) + "px, " + fs(5.6) + "vw, " + fs(30) + "px)", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, t("Estate File")),
+              h("span", { "aria-label": t("Estate province or territory") + ": " + t(provinceDef(province).label), style: { flex: "0 0 auto", padding: "3px 7px", borderRadius: 7, border: "1px solid " + T.gold, color: T.gold, fontFamily: font.body, fontSize: fs(9.5), fontWeight: 800, lineHeight: 1.2, letterSpacing: 0.3 } }, province === "ON" ? "ONT" : t(provinceDef(province).short))
+            ),
             h("div", { style: { fontSize: fs(12.5), opacity: 0.72, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, t("An executor's own record"))
           )
         ),
