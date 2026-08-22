@@ -4349,11 +4349,9 @@ function EstateFile() {
 
   // ---------- shell ----------
 
-  // Six tabs at full length ran off the right edge on a real phone, clipping
-  // "Estimate" to "Est" and hiding Settings entirely. The bar scrolls, but
-  // nothing on screen said so, which meant Settings simply looked absent.
-  // Shorter labels plus a tighter gap fit all six, and the fade on the right
-  // edge below makes it obvious when there is more to reach.
+  // Settings is app configuration rather than estate work, so it lives in the
+  // persistent header cog. The work navigation below contains only the
+  // executor-facing sections and has more room on narrow phones.
   const TABS = [
     { id: "start", label: t("Start Here"),
       about: "An ordered checklist for getting started and keeping track of what has been completed." },
@@ -4368,9 +4366,7 @@ function EstateFile() {
     { id: "benefits", label: t("Benefits"),
       about: province === "QC" ? "Quebec Pension Plan survivor benefits, federal support and Quebec succession information. It does not decide eligibility; use Retraite Québec and the responsible government authority." : "Benefits and support that may be available to a survivor or the estate, plus the calls that stop payments going out incorrectly. It does not decide eligibility; the responsible government authority does." },
     { id: "estimate", label: t(province === "QC" ? "Succession" : "Probate"),
-      about: province === "QC" ? "Quebec succession / will-verification information, RDPRM steps and liquidator process tracking. Information, not legal advice." : provinceDef(province).label + " probate / grant fees from an estate value, plus the jurisdiction-specific process tracker. Arithmetic, not legal advice." },
-    { id: "settings", label: t("Settings"),
-      about: "Appearance, text size, the PIN lock, backups, and printing your whole file." }
+      about: province === "QC" ? "Quebec succession / will-verification information, RDPRM steps and liquidator process tracking. Information, not legal advice." : provinceDef(province).label + " probate / grant fees from an estate value, plus the jurisdiction-specific process tracker. Arithmetic, not legal advice." }
   ];
 
   // First run sits in front of the app, after the lock rather than before it:
@@ -4539,11 +4535,24 @@ function EstateFile() {
             style: {
               flex: "0 0 auto", cursor: "pointer",
               background: "transparent", border: "1px solid rgba(251,248,240,0.4)",
-              borderRadius: 999, padding: "0 14px", minHeight: 44,
+              borderRadius: 999, padding: "0 12px", minHeight: 44,
               display: "inline-flex", alignItems: "center",
               color: T.cream, fontFamily: font.body, fontSize: fs(12), fontWeight: 800
             }
-          }, t("Help"))
+          }, t("Help")),
+          h("button", {
+            onClick: () => { setTab("settings"); setOpenClaim(null); },
+            "aria-label": t("Settings"),
+            "aria-current": tab === "settings" ? "page" : undefined,
+            title: t("Settings"),
+            style: {
+              flex: "0 0 auto", cursor: "pointer", width: 44, height: 44, padding: 0,
+              background: tab === "settings" ? "rgba(197,154,39,0.14)" : "transparent",
+              border: "1px solid " + (tab === "settings" ? T.gold : "rgba(251,248,240,0.4)"),
+              borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center",
+              color: tab === "settings" ? T.gold : T.cream, fontFamily: font.body, fontSize: fs(21), fontWeight: 700, lineHeight: 1
+            }
+          }, h("span", { "aria-hidden": "true" }, "⚙︎"))
         )
       ),
       // The tab strip sits in its own relative box so a fade can be laid over
