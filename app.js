@@ -4303,6 +4303,40 @@ function EstateFile() {
         h("div", { style: { marginTop: 10, fontSize: fs(10.5), color: T.inkSoft, lineHeight: 1.45 } },
           t("This checklist is an organizer, not legal, tax or financial advice. Requirements and timing depend on the estate and jurisdiction."))
       ),
+      h("section", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 16 } },
+        h("div", { style: { fontFamily: font.display, fontSize: fs(20), fontWeight: 700, color: T.heading } }, t("Before you begin — set up Estate File Canada")),
+        h("div", { style: { marginTop: 5, fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5 } }, t("Take a minute to set up the app before you start the estate checklist.")),
+        h("ol", { style: { margin: "12px 0 12px", paddingLeft: 22, color: T.ink, fontSize: fs(11.5), lineHeight: 1.55 } },
+          h("li", null, h("strong", null, t("Set your language.")), " ", t("Choose English or French.")),
+          h("li", null, h("strong", null, t("Set the estate province or territory.")), " ", t("This controls jurisdiction-specific benefits, probate or succession information and guidance.")),
+          h("li", null, h("strong", null, t("Choose appearance and text size.")), " ", t("Use Follow Device, Day or Night and choose the text size that is easiest to read.")),
+          h("li", null, h("strong", null, t("Add the basic estate information.")), " ", t("Use Estate to record the person, important contacts, assets, debts and other estate details.")),
+          h("li", null, h("strong", null, t("Come back to Start Here.")), " ", t("Work through the checklist from the top down and add dates or notes as you go."))
+        ),
+        h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, style: { width: "100%", padding: "12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(12.5), fontWeight: 800, cursor: "pointer" } }, t("Open Settings ⚙︎"))
+      ),
+      h("section", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 20 } },
+        h("div", { style: { fontFamily: font.display, fontSize: fs(20), fontWeight: 700, color: T.heading } }, t("How to use Estate File Canada")),
+        h("div", { style: { marginTop: 6, fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5 } }, t("Each menu has a different job. You can move between them at any time.")),
+        [
+          ["Start Here", "Your guided checklist. Work through the estate tasks in order, check off completed items, and add dates and notes."],
+          ["Tasks", "Your personal task tracker for extra jobs and follow-ups you need to manage. Add a task, record its status, notes, documents and calls."],
+          ["Estate", "The main estate record. Keep the deceased person's information, contacts, assets, property, accounts, debts and other estate details here."],
+          ["Dates", "Keep important estate dates, appointments and deadlines that you enter in one place."],
+          ["Docs", "Keep track of important estate documents and store photographs or PDFs on this device."],
+          ["Benefits", "Review federal and jurisdiction-specific death and survivor benefits that may apply, and links to the responsible government authorities."],
+          [province === "QC" ? "Succession" : "Probate", province === "QC" ? "Quebec succession and will-verification information, process tracking and related guidance for the selected jurisdiction." : "Probate information, process tracking and the applicable fee calculator for the selected province or territory."],
+          ["Help", "Open plain-language explanations, useful information and phone numbers."],
+          ["Settings", "Change language, province or territory, appearance, text size, backup and other app preferences."]
+        ].map((row) => h("div", { key: row[0], style: { padding: "10px 0", borderTop: "1px solid " + T.line } },
+          h("div", { style: { fontSize: fs(12), fontWeight: 800, color: T.ink } }, t(row[0])),
+          h("div", { style: { marginTop: 2, fontSize: fs(10.8), color: T.inkSoft, lineHeight: 1.45 } }, t(row[1]))
+        ))
+      ),
+      h("div", { style: { margin: "0 2px 16px" } },
+        h("div", { style: { fontFamily: font.display, fontSize: fs(22), fontWeight: 700, color: T.heading } }, t("Your estate checklist — first things first")),
+        h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginTop: 3, lineHeight: 1.4 } }, t("Once the app is set up, begin here and work down the list one item at a time."))
+      ),
       START_GROUPS.map((group) => {
         const tasks = START_TASKS.filter((task) => task.group === group.id);
         return h("section", { key: group.id, style: { marginBottom: 22 } },
@@ -4355,7 +4389,7 @@ function EstateFile() {
   const TABS = [
     { id: "start", label: t("Start Here"),
       about: "An ordered checklist for getting started and keeping track of what has been completed." },
-    { id: "claims", label: t("Steps"),
+    { id: "claims", label: t("Tasks"),
       about: "Every notification and filing: where each one stands, your notes, documents, and every call logged." },
     { id: "body", label: t("Estate"),
       about: "The estate inventory: every account, property and debt, what it is worth, and how it passes. Courts, provincial or territorial filings and the CRA can all need parts of this same record." },
