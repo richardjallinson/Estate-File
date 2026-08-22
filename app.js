@@ -103,12 +103,6 @@ const font = {
   body: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 };
 
-// Estate File Canada maple-leaf mark. This is an original, simplified
-// geometric leaf drawn specifically for this app. It deliberately does not
-// reproduce the official 11-point National Flag of Canada leaf. The red
-// colour and leaf motif communicate Canadian context without presenting the
-// app as a Government of Canada service. Decorative only; the adjacent
-// wordmark carries the accessible app name.
 // ---- Text size.
 //
 // Every font size in this app goes through fs(). The scale is a module-level
@@ -163,8 +157,16 @@ function wordCount(value) {
   return text ? text.split(/\s+/).length : 0;
 }
 
-const LEAF_VIEWBOX = "0 0 100 112";
-const LEAF_PATH = "M50 3 L59 25 L70 18 L68 39 L88 31 L80 51 L97 55 L79 70 L84 88 L61 82 L57 98 L54 98 L54 110 L46 110 L46 98 L43 98 L39 82 L16 88 L21 70 L3 55 L20 51 L12 31 L32 39 L30 18 L41 25 Z";
+// Estate File Canada maple-leaf mark. An original five-lobe silhouette drawn
+// for this app: serrated lobes, deep sinuses and a short tapered stem,
+// generated from its own point set (see tools/leaf.py). It is deliberately
+// not the official 11-point National Flag of Canada leaf and is not traced
+// from any flag, emblem or stock image — the lobe count, serration rhythm and
+// proportions are its own. The red leaf communicates Canadian context without
+// presenting the app as a Government of Canada service. Decorative only; the
+// adjacent wordmark carries the accessible app name.
+const LEAF_VIEWBOX = "0 0 100 89";
+const LEAF_PATH = "M50 2 L55.4 16.3 L59.3 11.9 L59.4 27.3 L64.2 24.8 L59.6 40.2 L72.4 26.8 L70.3 34 L83.1 28 L81.5 35.4 L94.1 32.4 L82.9 45.4 L87.1 47.9 L73.5 55 L84 58.8 L77.9 62 L87 68.5 L74.1 69.7 L73.8 72.7 L62.6 69.9 L58.4 71.2 L54.5 71.1 L51.9 71.1 L51.1 87.1 L48.9 87.1 L48.1 71.1 L45.5 71.1 L41.6 71.2 L37.4 69.9 L26.2 72.7 L25.9 69.7 L13 68.5 L22.1 62 L16 58.8 L26.5 55 L12.9 47.9 L17.1 45.4 L5.9 32.4 L18.5 35.4 L16.9 28 L29.7 34 L27.6 26.8 L40.4 40.2 L35.8 24.8 L40.6 27.3 L40.7 11.9 L44.6 16.3 L50 2 Z";
 const MapleLeaf = (props) => h("svg", {
   viewBox: LEAF_VIEWBOX,
   width: props.size || 28, height: props.size || 28,
