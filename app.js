@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1Q";
+const APP_VERSION = "v1R";
 
 // ---- Day and night.
 //
@@ -825,6 +825,53 @@ const PROBATE_SUMMARY = {
 function probateSources(p) { return PROBATE_SOURCES[normaliseProvinceId(p)] || PROBATE_SOURCES.ON; }
 function probateHint(p) { return PROBATE_HINT[normaliseProvinceId(p)] || PROBATE_HINT.ON; }
 function probateSummary(p) { return PROBATE_SUMMARY[normaliseProvinceId(p)] || PROBATE_SUMMARY.ON; }
+
+// ---- Money typed by a person, on any keyboard.
+//
+// This field used to be <input type="number">. It was the only one in the app,
+// and it was the only one that broke: on an iPad it would not accept input at
+// all. Safari's number input reports an empty string whenever it considers the
+// current text invalid, so a controlled React field reading .value gets "" and
+// renders the character straight back out of existence. On an iPhone the
+// decimal keypad only offers digits and a period, so nothing invalid can be
+// typed and the bug never shows. An iPad gives a full keyboard — one comma,
+// space or stray letter and the field silently blanks itself.
+//
+// So: type="text" with inputMode="decimal", and sanitise here instead of
+// letting the browser reject input we could have understood. Handles the
+// separators a Canadian actually types, in either language:
+//   "1 000 000"   fr-CA thousands (space, nbsp or narrow nbsp)
+//   "1,000,000"   en-CA thousands
+//   "1,50"        fr-CA decimal comma
+//   "$250,000"    pasted from a statement
+//
+// Ambiguity between a decimal comma and a thousands comma is resolved the way
+// every spreadsheet resolves it: a single comma followed by exactly one or two
+// digits is a decimal mark, anything else is a thousands separator. Whatever
+// this concludes, the result card echoes the interpreted value back in words
+// and figures, so a misread is visible rather than silent.
+function sanitiseAmountInput(rawValue) {
+  let s = String(rawValue == null ? "" : rawValue);
+  s = s.replace(/[\s\u00A0\u202F\u2009]/g, "");   // spaces, nbsp, narrow nbsp
+  s = s.replace(/[$\u20AC\u00A3]/g, "");            // pasted currency symbols
+  const hasDot = s.indexOf(".") !== -1;
+  const commas = (s.match(/,/g) || []).length;
+  if (commas) {
+    if (hasDot) {
+      s = s.replace(/,/g, "");                       // "1,000.50" -> thousands
+    } else if (commas === 1 && /,\d{1,2}$/.test(s)) {
+      s = s.replace(",", ".");                       // "1,50" -> decimal comma
+    } else {
+      s = s.replace(/,/g, "");                       // "1,000,000" -> thousands
+    }
+  }
+  s = s.replace(/[^0-9.]/g, "");
+  const first = s.indexOf(".");
+  if (first !== -1) s = s.slice(0, first + 1) + s.slice(first + 1).replace(/\./g, "");
+  const parts = s.split(".");
+  if (parts.length === 2 && parts[1].length > 2) s = parts[0] + "." + parts[1].slice(0, 2);
+  return s;
+}
 
 // ---- Probate, as a tracked sequence.
 const PROBATE_LEVELS = {
@@ -3573,8 +3620,11 @@ function EstateFile() {
       province === "QC" ? null : h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px", marginBottom: 12 } },
         h(Field, { label: t("Estate value for this calculation"), hint: t(hint) },
           h("input", {
-            type: "number", inputMode: "decimal", min: "0", value: estImpair,
-            onInput: (e) => setEstImpair(e.currentTarget.value), placeholder: "0",
+            type: "text", inputMode: "decimal", autoComplete: "off",
+            enterKeyHint: "done", value: estImpair,
+            "aria-label": t("Estate value for this calculation"),
+            onInput: (e) => setEstImpair(sanitiseAmountInput(e.currentTarget.value)),
+            placeholder: "0",
             style: { ...inputStyle(), width: "100%" }
           }))
       ),
@@ -4659,6 +4709,13 @@ function EstateFile() {
   const TABS = [
     { id: "start", label: t("Start Here"),
       about: "An ordered checklist for getting started and keeping track of what has been completed." },
+    // Benefits sits second, directly after Start Here. It was sixth. The
+    // money an executor can claim — CPP death benefit, survivor's pension,
+    // provincial support — is time-sensitive and easy to miss entirely, and
+    // burying it behind four record-keeping tabs meant nobody found it until
+    // they went looking. Bonnie put it plainly: this is the part that pays.
+    { id: "benefits", label: t("Benefits"),
+      about: province === "QC" ? "Quebec Pension Plan survivor benefits, federal support and Quebec succession information. It does not decide eligibility; use Retraite Québec and the responsible government authority." : "Benefits and support that may be available to a survivor or the estate, plus the calls that stop payments going out incorrectly. It does not decide eligibility; the responsible government authority does." },
     { id: "claims", label: t("My Tasks"),
       about: "Every notification and filing: where each one stands, your notes, documents, and every call logged." },
     { id: "body", label: t("Estate"),
@@ -4667,8 +4724,6 @@ function EstateFile() {
       about: "Dates you have been given: a 180-day return, a court date, a form due back. The app keeps the ones you enter; it does not work out your deadlines for you." },
     { id: "documents", label: t("Docs"),
       about: "Photographs and PDFs of statements of death, the will, certificates and letters, kept on this phone." },
-    { id: "benefits", label: t("Benefits"),
-      about: province === "QC" ? "Quebec Pension Plan survivor benefits, federal support and Quebec succession information. It does not decide eligibility; use Retraite Québec and the responsible government authority." : "Benefits and support that may be available to a survivor or the estate, plus the calls that stop payments going out incorrectly. It does not decide eligibility; the responsible government authority does." },
     { id: "estimate", label: t(province === "QC" ? "Succession" : "Probate"),
       about: province === "QC" ? "Quebec succession / will-verification information, RDPRM steps and liquidator process tracking. Information, not legal advice." : provinceDef(province).label + " probate / grant fees from an estate value, plus the jurisdiction-specific process tracker. Arithmetic, not legal advice." }
   ];
