@@ -4538,8 +4538,8 @@ function EstateFile() {
     // Help, language and the selected jurisdiction remain immediately visible.
     h("div", { style: { background: T.header, color: T.cream, padding: "calc(10px + env(safe-area-inset-top)) 16px 0", borderBottom: "2px solid " + T.gold } },
       h("div", { style: { display: "flex", alignItems: "center", gap: 10 } },
-        h("div", { style: { width: 42, height: 42, borderRadius: 999, border: "1.5px solid " + T.gold, display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" } },
-          h(MapleLeaf, { size: 27, color: T.gold })
+        h("div", { style: { width: 42, height: 42, borderRadius: 999, border: "1.5px solid " + T.maple, display: "flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" } },
+          h(MapleLeaf, { size: 27, color: T.maple })
         ),
         h("div", { style: { minWidth: 0, flex: "1 1 auto", fontFamily: font.display, fontWeight: 700, fontSize: "clamp(" + fs(24) + "px, " + fs(6.4) + "vw, " + fs(32) + "px)", lineHeight: 1.05, whiteSpace: "nowrap", letterSpacing: -0.25 } }, t("Estate File Canada")),
         h("button", {
