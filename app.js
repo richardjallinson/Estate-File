@@ -1356,15 +1356,15 @@ const START_TASKS = [
   { id: "secure", group: "days", title: "Secure the home, property, vehicles and valuables", detail: "Protect property, collect keys, check insurance requirements and make sure essential property is not left unattended or at risk." },
   { id: "dependants", group: "days", title: "Deal with immediate needs of dependants and pets", detail: "Record any urgent care, housing or practical arrangements that need attention." },
   { id: "mail", group: "days", title: "Secure mail and important records", detail: "Gather statements, tax records, bills, identification and other estate paperwork. Consider how mail will be handled while the estate is being settled." },
-  { id: "service-canada", group: "days", title: "Notify Service Canada and stop CPP / OAS payments when applicable", detail: "Report the death as required and record the date and reference information. Quebec Pension Plan matters are handled through Retraite Québec." },
-  { id: "cra", group: "days", title: "Notify the Canada Revenue Agency", detail: "Report the death to the CRA and keep a record of what was sent or discussed." },
+  { id: "service-canada", group: "days", title: "Notify Service Canada and stop CPP / OAS payments when applicable", detail: "Report the death as required and record the date and reference information. Quebec Pension Plan matters are handled through Retraite Québec.", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/cpp-death-benefit.html", urlLabel: "Open official Canada.ca information" },
+  { id: "cra", group: "days", title: "Notify the Canada Revenue Agency", detail: "Report the death to the CRA and keep a record of what was sent or discussed.", url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/life-events/what-when-someone-died.html", urlLabel: "Open official CRA information" },
   { id: "province", group: "days", title: "Notify provincial or territorial programs that apply", detail: "Health coverage, driver's licence, benefits and other programs vary by province or territory. Use the estate's jurisdiction in Settings to guide your research." },
 
   { id: "inventory", group: "weeks", title: "Start a complete estate inventory", detail: "List bank accounts, investments, real estate, vehicles, personal property, business interests, debts and other assets or liabilities." },
   { id: "banks", group: "weeks", title: "Contact banks and financial institutions", detail: "Tell each institution about the death, ask what documents it requires and record balances or values at the date of death where needed." },
   { id: "insurance", group: "weeks", title: "Find and contact life insurance companies", detail: "Locate policies and beneficiary information and ask the insurer about its claim process." },
   { id: "pensions", group: "weeks", title: "Contact employers, pensions and workplace benefit plans", detail: "Ask about pension survivor benefits, final pay, group life insurance and any other amounts or benefits that may be payable." },
-  { id: "benefits", group: "weeks", title: "Check survivor and death benefits", detail: "Review the Benefits section for programs that may apply. The responsible government or plan administrator decides eligibility." },
+  { id: "benefits", group: "weeks", title: "Check survivor and death benefits", detail: "Review the Benefits section for programs that may apply. The responsible government or plan administrator decides eligibility.", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/cpp-death-benefit.html", urlLabel: "Open official Canada.ca benefits information" },
   { id: "utilities", group: "weeks", title: "Review utilities, subscriptions and recurring payments", detail: "Identify services that should continue temporarily and those that can be cancelled. Avoid cancelling something needed to protect estate property." },
   { id: "digital", group: "weeks", title: "Identify digital accounts and online services", detail: "Record important email, cloud, social, subscription and other digital accounts and follow each provider's process for a deceased account holder." },
   { id: "authority", group: "weeks", title: "Determine whether probate, a grant or will verification is required", detail: "Requirements vary across Canada and by the assets involved. Use the Probate / Succession section for process information and get legal advice where the answer is unclear." },
@@ -1376,7 +1376,7 @@ const START_TASKS = [
   { id: "beneficiaries", group: "admin", title: "Keep beneficiaries or heirs appropriately informed", detail: "Record important communications and documents provided while the estate is being administered." },
 
   { id: "estate-tax", group: "finish", title: "Complete estate / trust tax work that applies", detail: "An estate can have tax obligations after death. An accountant or the responsible tax authority can confirm what filings are required." },
-  { id: "clearance", group: "finish", title: "Consider tax clearance before final distribution", detail: "CRA clearance, and a separate Revenu Québec authorization process in Quebec, can matter before final distribution. Confirm the requirements for this estate." },
+  { id: "clearance", group: "finish", title: "Consider tax clearance before final distribution", detail: "CRA clearance, and a separate Revenu Québec authorization process in Quebec, can matter before final distribution. Confirm the requirements for this estate.", url: "https://www.canada.ca/en/revenue-agency/services/tax/trust-administrators/t3-return/clearance-certificate.html", urlLabel: "Open official CRA clearance information" },
   { id: "distribution", group: "finish", title: "Make final distributions only when the estate is ready", detail: "Follow the will or applicable succession law, resolve required debts and taxes, and keep a record of each distribution." },
   { id: "accounts", group: "finish", title: "Prepare final estate accounts and keep the file", detail: "Reconcile money in and out, retain receipts and statements, document distributions and keep the estate record for the period appropriate to the circumstances." }
 ];
@@ -4289,6 +4289,7 @@ function EstateFile() {
   const startScreen = () => {
     const doneCount = START_TASKS.filter((task) => (startChecklist[task.id] || {}).done).length;
     const pct = Math.round((doneCount / START_TASKS.length) * 100);
+    const nextTask = START_TASKS.find((task) => !(startChecklist[task.id] || {}).done) || null;
     return h("main", { style: { padding: "18px 16px 28px", maxWidth: 760, margin: "0 auto" } },
       h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 16 } },
         h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: fs(25), color: T.heading } }, t("Start Here")),
@@ -4302,6 +4303,15 @@ function EstateFile() {
         ),
         h("div", { style: { marginTop: 10, fontSize: fs(10.5), color: T.inkSoft, lineHeight: 1.45 } },
           t("This checklist is an organizer, not legal, tax or financial advice. Requirements and timing depend on the estate and jurisdiction."))
+      ),
+      nextTask ? h("section", { style: { background: T.card, border: "2px solid " + T.gold, borderRadius: 16, padding: 16, marginBottom: 16 } },
+        h("div", { style: { fontSize: fs(10.5), fontWeight: 900, color: T.gold, textTransform: "uppercase", letterSpacing: ".05em" } }, t("Next thing to do")),
+        h("div", { style: { marginTop: 5, fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t(nextTask.title)),
+        h("div", { style: { marginTop: 5, fontSize: fs(11.2), color: T.inkSoft, lineHeight: 1.5 } }, t("This is the first unfinished item in your Start Here checklist.")),
+        h("button", { onClick: () => { setStartOpen(nextTask.id); setTimeout(() => { const el = document.getElementById("start-task-" + nextTask.id); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }, style: { marginTop: 10, width: "100%", padding: "11px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(11.8), fontWeight: 800, cursor: "pointer" } }, t("Open this checklist item"))
+      ) : h("section", { style: { background: T.card, border: "2px solid " + T.green, borderRadius: 16, padding: 16, marginBottom: 16 } },
+        h("div", { style: { fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t("Checklist complete")),
+        h("div", { style: { marginTop: 5, fontSize: fs(11.2), color: T.inkSoft, lineHeight: 1.5 } }, t("All Start Here items are marked complete. Review your estate record and My Tasks for anything still outstanding."))
       ),
       h("section", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 16 } },
         h("div", { style: { fontFamily: font.display, fontSize: fs(20), fontWeight: 700, color: T.heading } }, t("Before you begin — set up Estate File Canada")),
@@ -4320,7 +4330,7 @@ function EstateFile() {
         h("div", { style: { marginTop: 6, fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5 } }, t("Each menu has a different job. You can move between them at any time.")),
         [
           ["Start Here", "Your guided checklist. Work through the estate tasks in order, check off completed items, and add dates and notes."],
-          ["Tasks", "Your personal task tracker for extra jobs and follow-ups you need to manage. Add a task, record its status, notes, documents and calls."],
+          ["My Tasks", "Your personal task tracker for jobs and follow-ups that are specific to this estate and are not already covered by Start Here. Add a task, record its status, notes, documents and calls."],
           ["Estate", "The main estate record. Keep the deceased person's information, contacts, assets, property, accounts, debts and other estate details here."],
           ["Dates", "Keep important estate dates, appointments and deadlines that you enter in one place."],
           ["Docs", "Keep track of important estate documents and store photographs or PDFs on this device."],
@@ -4347,7 +4357,7 @@ function EstateFile() {
           tasks.map((task) => {
             const rec = startChecklist[task.id] || {};
             const open = startOpen === task.id;
-            return h("div", { key: task.id, style: { background: T.card, border: "1px solid " + (rec.done ? T.green : T.line), borderRadius: 13, marginBottom: 9, overflow: "hidden" } },
+            return h("div", { key: task.id, id: "start-task-" + task.id, style: { background: T.card, border: "1px solid " + (rec.done ? T.green : T.line), borderRadius: 13, marginBottom: 9, overflow: "hidden" } },
               h("div", { style: { display: "flex", alignItems: "stretch" } },
                 h("button", {
                   onClick: () => toggleStartTask(task.id),
@@ -4366,7 +4376,8 @@ function EstateFile() {
                 )
               ),
               open ? h("div", { style: { borderTop: "1px solid " + T.line, padding: "13px 14px 15px 58px" } },
-                h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5, marginBottom: 12 } }, t(task.detail)),
+                h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5, marginBottom: task.url ? 6 : 12 } }, t(task.detail)),
+                task.url ? h("a", { href: task.url, target: "_blank", rel: "noopener noreferrer", style: { display: "inline-block", marginBottom: 12, color: T.blue, fontSize: fs(10.8), fontWeight: 800 } }, t(task.urlLabel || "Open official government information")) : null,
                 h(Field, { label: t("Date completed / action date") },
                   h("input", { type: "date", value: rec.date || "", onInput: (e) => updateStartTask(task.id, { date: e.currentTarget.value }), style: { ...inputStyle(), width: "100%" } })
                 ),
@@ -4389,7 +4400,7 @@ function EstateFile() {
   const TABS = [
     { id: "start", label: t("Start Here"),
       about: "An ordered checklist for getting started and keeping track of what has been completed." },
-    { id: "claims", label: t("Tasks"),
+    { id: "claims", label: t("My Tasks"),
       about: "Every notification and filing: where each one stands, your notes, documents, and every call logged." },
     { id: "body", label: t("Estate"),
       about: "The estate inventory: every account, property and debt, what it is worth, and how it passes. Courts, provincial or territorial filings and the CRA can all need parts of this same record." },

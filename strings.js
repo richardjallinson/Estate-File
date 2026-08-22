@@ -1209,7 +1209,19 @@ const FR = {
   "Open plain-language explanations, useful information and phone numbers.": "Ouvrez des explications en langage clair, des renseignements utiles et des numéros de téléphone.",
   "Change language, province or territory, appearance, text size, backup and other app preferences.": "Modifiez la langue, la province ou le territoire, l’apparence, la taille du texte, la sauvegarde et les autres préférences de l’application.",
   "Your estate checklist — first things first": "Votre liste de contrôle successorale — les premières choses à faire",
-  "Once the app is set up, begin here and work down the list one item at a time.": "Une fois l’application configurée, commencez ici et suivez la liste, une tâche à la fois."
+  "Once the app is set up, begin here and work down the list one item at a time.": "Une fois l’application configurée, commencez ici et suivez la liste, une tâche à la fois.",
+  "My Tasks": "Mes tâches",
+  "Your personal task tracker for jobs and follow-ups that are specific to this estate and are not already covered by Start Here. Add a task, record its status, notes, documents and calls.": "Votre suivi personnel pour les tâches et suivis propres à cette succession qui ne figurent pas déjà dans Commencer ici. Ajoutez une tâche et consignez son état, ses notes, ses documents et ses appels.",
+  "Next thing to do": "Prochaine chose à faire",
+  "This is the first unfinished item in your Start Here checklist.": "Il s’agit du premier élément non terminé de votre liste Commencer ici.",
+  "Open this checklist item": "Ouvrir cet élément",
+  "Checklist complete": "Liste de contrôle terminée",
+  "All Start Here items are marked complete. Review your estate record and My Tasks for anything still outstanding.": "Tous les éléments de Commencer ici sont cochés. Vérifiez le dossier de succession et Mes tâches pour tout élément encore en suspens.",
+  "Open official Canada.ca information": "Ouvrir les renseignements officiels de Canada.ca",
+  "Open official CRA information": "Ouvrir les renseignements officiels de l’ARC",
+  "Open official Canada.ca benefits information": "Ouvrir les renseignements officiels de Canada.ca sur les prestations",
+  "Open official CRA clearance information": "Ouvrir les renseignements officiels de l’ARC sur le certificat de décharge",
+  "Open official government information": "Ouvrir les renseignements officiels du gouvernement"
 };
 
 const FR_MISSES = new Set();
