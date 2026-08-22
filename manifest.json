@@ -1,7 +1,7 @@
 {
   "name": "Estate File",
   "short_name": "Estate File",
-  "description": "A private, offline record for executors settling an estate. Track tasks, dates, documents, contacts, assets, benefits and probate / succession progress on your device.",
+  "description": "A private, bilingual Canadian estate record for executors and liquidators. Works offline and adapts to all 13 provinces and territories.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FBF8F0",

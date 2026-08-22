@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1H";
+const APP_VERSION = "v1J";
 
 // ---- Day and night.
 //
@@ -148,13 +148,17 @@ function telHref(value) {
 }
 function money(value) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "$0";
-  return "$" + Math.round(n).toLocaleString("en-CA");
+  if (!Number.isFinite(n)) return getLang() === "fr" ? "0 $" : "$0";
+  const rounded = Math.round(n);
+  return getLang() === "fr"
+    ? rounded.toLocaleString("fr-CA") + " $"
+    : "$" + rounded.toLocaleString("en-CA");
 }
 function moneyCents(value) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "$0.00";
-  return "$" + n.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!Number.isFinite(n)) return getLang() === "fr" ? "0,00 $" : "$0.00";
+  const formatted = n.toLocaleString(getLang() === "fr" ? "fr-CA" : "en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return getLang() === "fr" ? formatted + " $" : "$" + formatted;
 }
 function statementDef(id) {
   return STATEMENTS.find((s) => s.id === id) || STATEMENTS[0];
@@ -202,7 +206,10 @@ const PROVINCES = [
   { id: "NB", label: "New Brunswick", short: "N.B." },
   { id: "NL", label: "Newfoundland and Labrador", short: "N.L." },
   { id: "PE", label: "Prince Edward Island", short: "P.E.I." },
-  { id: "QC", label: "Quebec", short: "QC" }
+  { id: "QC", label: "Quebec", short: "QC" },
+  { id: "YT", label: "Yukon", short: "YT" },
+  { id: "NT", label: "Northwest Territories", short: "NWT" },
+  { id: "NU", label: "Nunavut", short: "NU" }
 ];
 const normaliseProvinceId = (id) => {
   const key = String(id || "ON").trim().toUpperCase();
@@ -213,20 +220,20 @@ const provinceDef = (id) => PROVINCES.find((p) => p.id === normaliseProvinceId(i
 const BENEFIT_CATEGORIES = [
   { id: "cpp", label: "From the Canada Pension Plan" },
   { id: "other", label: "Other federal support" },
-  { id: "prov", label: "Provincial estate information" }
+  { id: "prov", label: "Provincial / territorial estate information" }
 ];
 function benefitCategories(province) {
   const p = provinceDef(province);
   return BENEFIT_CATEGORIES.map((c) => {
     if (c.id === "cpp" && p.id === "QC") return { ...c, label: "From the Québec Pension Plan" };
-    if (c.id === "prov") return { ...c, label: p.label + " estate information", note: "Provincial rules differ across Canada. This section follows the estate province selected in the app." };
+    if (c.id === "prov") return { ...c, label: p.label + " estate information", note: "Estate rules differ across Canada. This section follows the estate province or territory selected in the app." };
     return c;
   });
 }
 
 // Figures are the published 2026 amounts. Provincial court fees and filing
 // rules below were checked against the official Ontario, B.C., Alberta,
-// Saskatchewan, Manitoba, Nova Scotia, New Brunswick, Newfoundland and Labrador, Prince Edward Island, and Quebec sources in August 2026. They remain reference
+// Saskatchewan, Manitoba, Nova Scotia, New Brunswick, Newfoundland and Labrador, Prince Edward Island, Quebec, Yukon, Northwest Territories and Nunavut sources in August 2026. They remain reference
 // information, not legal advice.
 const RATES_READ = "August 2026";
 
@@ -250,6 +257,9 @@ function benefitLinkText(url) {
   else if (/court\.nl\.ca|gov\.nl\.ca|assembly\.nl\.ca/i.test(url)) label = "Open official Newfoundland and Labrador page";
   else if (/princeedwardisland\.ca|courts\.pe\.ca/i.test(url)) label = "Open official Prince Edward Island page";
   else if (/quebec\.ca|etatcivil\.gouv\.qc\.ca|revenuquebec\.ca|retraitequebec\.gouv\.qc\.ca/i.test(url)) label = "Open official Quebec page";
+  else if (/yukon\.ca|yukoncourts\.ca/i.test(url)) label = "Open official Yukon page";
+  else if (/gov\.nt\.ca|justice\.gov\.nt\.ca|nwtcourts\.ca|hss\.gov\.nt\.ca/i.test(url)) label = "Open official Northwest Territories page";
+  else if (/gov\.nu\.ca|nunavutcourts\.ca|nunavutlegislation\.ca|livehealthy\.gov\.nu\.ca/i.test(url)) label = "Open official Nunavut page";
   else if (/publiclegalinfo\.com/i.test(url)) label = "Open Public Legal Information page";
   else if (/legalinfopei\.ca/i.test(url)) label = "Open Community Legal Information page";
   return t(label) + (info.english ? t(" (page in English)") : "");
@@ -469,6 +479,48 @@ const PROVINCIAL_BENEFITS = {
       what: "Before distributing property owned by the deceased or post-death income of the succession, the liquidator must use Revenu Québec's process to obtain the certificate authorizing distribution. Federal CRA clearance remains a separate step.",
       rate: "Form MR-14.A-V is the published notice used to request the Quebec distribution certificate.",
       url: "https://www.revenuquebec.ca/en/online-services/forms-and-publications/current-details/mr-14-a-v/" }
+  ],
+  YT: [
+    { id: "ytfees", cat: "prov", name: "Yukon estate grant fee",
+      what: "The Supreme Court of Yukon charges a fixed fee for a grant or ancillary grant of probate or administration, or for resealing an extra-territorial grant. The Probate tab applies the published estate-value threshold.",
+      rate: "$0 where the estate does not exceed $25,000; $140 where the estate exceeds $25,000. The fee exemption does not itself decide whether a grant is required.",
+      url: "https://www.yukoncourts.ca/sites/default/files/2023-12/Appendix%20C.pdf" },
+    { id: "ytrule64", cat: "prov", name: "Yukon Rule 64 notice and grant process",
+      what: "For a non-contentious estate, current Supreme Court Rule 64 sets the application requirements, proof of death and notice process. The Court will not issue a grant until 21 days have elapsed from the mailing or delivery date shown in the Affidavit of Notice of Application.",
+      rate: "Common forms include Form 4A plus the applicable executor or administrator affidavit and grant form. Use the current Rules and Forms page for the exact package.",
+      url: "https://www.yukoncourts.ca/en/supreme-court/rules-forms" },
+    { id: "ytfirstnation", cat: "prov", name: "Yukon First Nation / Indian Act estate check",
+      what: "Rule 64 requires an applicant to inquire whether a deceased Yukon First Nation member with a Final Agreement and Self-Government Agreement is subject to First Nation inheritance, wills, intestacy or estate-administration laws. If the deceased was subject to the Indian Act, the rule requires the applicable ministerial consent under section 44 to be filed.",
+      rate: "This can change which law and documents govern the estate. Get legal advice where either rule may apply.",
+      url: "https://www.yukoncourts.ca/sites/default/files/2022-12/2022%20Rule%2064%20-%20ADMINISTRATION%20OF%20ESTATES%20%28NON%20CONTENTIOUS%29.pdf" }
+  ],
+  NT: [
+    { id: "ntfees", cat: "prov", name: "Northwest Territories estate administration court fee",
+      what: "The NWT Court Services Fees Regulations use fixed bands for probate, administration, resealing and ancillary-grant court services. The value is property in the Northwest Territories after deducting debts and liabilities against that property.",
+      rate: "$30 up to $10,000; $110 over $10,000 to $25,000; $215 over $25,000 to $125,000; $325 over $125,000 to $250,000; $435 over $250,000.",
+      url: "https://www.justice.gov.nt.ca/en/legislation/" },
+    { id: "ntsmall", cat: "prov", name: "NWT small-estate declaration",
+      what: "Under Rule 10 of the Estate Administration Rules, an estate whose net value reasonably appears to be less than $35,000 is a small estate. A person other than the Public Trustee can apply for a declaration of small estate instead of a grant.",
+      rate: "The published route uses Form 2, Application for Declaration of Small Estate, and Form 3, Memorandum and Affidavit in Support. The Court decides whether the route applies.",
+      url: "https://www.justice.gov.nt.ca/en/files/court-rules/Judicature%20Act/Estate%20Administration%20Rules/Estate%20Administration%20Rules.pdf" },
+    { id: "ntwillsearch", cat: "prov", name: "NWT estate administration and will-search resources",
+      what: "The Government of the Northwest Territories publishes estate-administration information and a Will Search Form through the Department of Justice. The Supreme Court's Estate Administration Rules govern the court process.",
+      rate: "Use the current rules and registry information for the estate's actual application; court staff can provide procedural information but not legal advice.",
+      url: "https://www.justice.gov.nt.ca/en/estate-administration/" }
+  ],
+  NU: [
+    { id: "nufees", cat: "prov", name: "Nunavut probate and administration court fee",
+      what: "Nunavut's Court Fees Regulations use fixed bands for probate, administration, resealing and ancillary letters. The value is property in Nunavut after deducting debts and liabilities against that property.",
+      rate: "$30 up to $10,000; $110 over $10,000 to $25,000; $215 over $25,000 to $125,000; $325 over $125,000 to $250,000; $425 over $250,000.",
+      url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/court-policies-and-fees" },
+    { id: "nuforms", cat: "prov", name: "Nunavut probate and administration rules and forms",
+      what: "The Nunavut Court of Justice publishes the current Probate and Administration Rules and prescribed forms. Form 1 is the application for probate or administration; the supporting forms depend on whether there is a will and on the particular application.",
+      rate: "Use the current Court Rules page and Registry for the exact filing package. The Registry's toll-free number is 1-866-286-0546.",
+      url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/rules-court" },
+    { id: "nuregistry", cat: "prov", name: "Nunavut Court Registry",
+      what: "The Nunavut Court of Justice Registry handles probate and administration filings and publishes the legislated fee structure and court rules.",
+      rate: "Registry: 867-975-6100 or toll-free 1-866-286-0546. Separate fees can apply for certified copies, caveats and other court services.",
+      url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/court-policies-and-fees" }
   ]
 };
 function benefitsForProvince(province) {
@@ -481,7 +533,7 @@ function benefitsForProvince(province) {
   return FEDERAL_BENEFITS.concat(PROVINCIAL_BENEFITS[p] || []);
 }
 // Kept as a complete directory for exports/tests; the screen filters to the selected province.
-const BENEFITS = FEDERAL_BENEFITS.concat(QUEBEC_PENSION_BENEFITS, PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB, PROVINCIAL_BENEFITS.SK, PROVINCIAL_BENEFITS.MB, PROVINCIAL_BENEFITS.NS, PROVINCIAL_BENEFITS.NB, PROVINCIAL_BENEFITS.NL, PROVINCIAL_BENEFITS.PE, PROVINCIAL_BENEFITS.QC);
+const BENEFITS = FEDERAL_BENEFITS.concat(QUEBEC_PENSION_BENEFITS, PROVINCIAL_BENEFITS.ON, PROVINCIAL_BENEFITS.BC, PROVINCIAL_BENEFITS.AB, PROVINCIAL_BENEFITS.SK, PROVINCIAL_BENEFITS.MB, PROVINCIAL_BENEFITS.NS, PROVINCIAL_BENEFITS.NB, PROVINCIAL_BENEFITS.NL, PROVINCIAL_BENEFITS.PE, PROVINCIAL_BENEFITS.QC, PROVINCIAL_BENEFITS.YT, PROVINCIAL_BENEFITS.NT, PROVINCIAL_BENEFITS.NU);
 
 function calculateProbateFees(province, value) {
   const p = normaliseProvinceId(province);
@@ -543,6 +595,26 @@ function calculateProbateFees(province, value) {
     return { province: p, value: raw, petitionFee, total: petitionFee };
   }
   if (p === "QC") return { province: p, value: raw, valueBasedFee: null, total: null };
+  if (p === "YT") {
+    const grantFee = raw <= 25000 ? 0 : 140;
+    return { province: p, value: raw, grantFee, total: grantFee };
+  }
+  if (p === "NT") {
+    let courtFee = 30;
+    if (raw > 250000) courtFee = 435;
+    else if (raw > 125000) courtFee = 325;
+    else if (raw > 25000) courtFee = 215;
+    else if (raw > 10000) courtFee = 110;
+    return { province: p, value: raw, courtFee, total: courtFee };
+  }
+  if (p === "NU") {
+    let courtFee = 30;
+    if (raw > 250000) courtFee = 425;
+    else if (raw > 125000) courtFee = 325;
+    else if (raw > 25000) courtFee = 215;
+    else if (raw > 10000) courtFee = 110;
+    return { province: p, value: raw, courtFee, total: courtFee };
+  }
   return null;
 }
 
@@ -731,6 +803,42 @@ const PROBATE_LEVELS = {
       blurb: "Register the liquidator in the RDPRM, complete the succession inventory, and record the RDPRM and newspaper notice of closure of inventory." },
     { id: "clearance", short: "Clearance", label: "Quebec and federal clearance recorded before final distribution",
       blurb: "Obtain Revenu Québec authorization before distributing succession property and the CRA clearance certificate before final distribution; then retain the final account and closure records." }
+  ],
+  YT: [
+    { id: "prep", short: "Preparation", label: "Getting the Yukon estate application ready",
+      blurb: "Gather proof of death, the will if there is one, estate information and the applicable Rule 64 forms. Check the special First Nation / Indian Act rules where relevant." },
+    { id: "notice", short: "Notice", label: "Notice of Application delivered",
+      blurb: "Record mailing or delivery of the Notice of Application. Current Rule 64 requires 21 days to elapse before the Court will issue a grant." },
+    { id: "filed", short: "Filed", label: "Application filed with the Supreme Court of Yukon",
+      blurb: "File Form 4A, the applicable executor or administrator affidavit, proof of death and other required materials with the Court Registry." },
+    { id: "certificate", short: "Grant", label: "Grant of Probate or Letters of Administration issued",
+      blurb: "The Supreme Court of Yukon has issued the grant establishing the personal representative's court authority." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  NT: [
+    { id: "prep", short: "Preparation", label: "Choosing the NWT estate route",
+      blurb: "Gather proof of death, the will if there is one and estate values. An estate reasonably appearing to be under $35,000 may have the Rule 10 small-estate declaration route." },
+    { id: "notice", short: "Notices", label: "Required notices and supporting material recorded",
+      blurb: "Record the notices, affidavits and supporting documents required by the NWT Estate Administration Rules for the chosen route." },
+    { id: "filed", short: "Filed", label: "Application filed with the Supreme Court of the Northwest Territories",
+      blurb: "File the applicable probate, administration, resealing or small-estate materials with the Court Registry." },
+    { id: "certificate", short: "Authority", label: "Grant or small-estate declaration issued",
+      blurb: "Record the court document establishing authority to administer the estate." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
+  ],
+  NU: [
+    { id: "prep", short: "Preparation", label: "Getting the Nunavut estate application ready",
+      blurb: "Gather proof of death, the will if there is one, Nunavut property values and the forms required by the Probate and Administration Rules." },
+    { id: "filed", short: "Filed", label: "Application filed with the Nunavut Court of Justice",
+      blurb: "File the applicable probate, administration, resealing or ancillary application and supporting documents with the Court Registry." },
+    { id: "notice", short: "Follow-up", label: "Court notices or additional material recorded",
+      blurb: "Record any notices, affidavits, corrections or additional material required for the particular estate application." },
+    { id: "certificate", short: "Grant", label: "Grant of probate or administration issued",
+      blurb: "The Nunavut Court of Justice has issued the grant establishing the personal representative's court authority." },
+    { id: "clearance", short: "Clearance", label: "CRA clearance certificate requested",
+      blurb: "Form TX19, after every required return is filed and assessed. Early distribution can create personal liability." }
   ]
 };
 function probateLevels(province) { return PROBATE_LEVELS[normaliseProvinceId(province)] || PROBATE_LEVELS.ON; }
@@ -812,12 +920,27 @@ function evidenceItems(province) {
       certificate: "Quebec's Directeur de l'état civil issues death certificates and copies of the act of death. Current normal online fees are $38.50 for a certificate and $46.75 for a copy of an act; paper/mail fees are higher.",
       grant: "Probated will / liquidator authority records",
       values: "Keep a complete inventory of the succession's assets and debts. Quebec requires the liquidator to make an inventory and publish the required notice of closure."
+    },
+    YT: {
+      certificate: "Yukon Vital Statistics issues death certificates. The current fee is $10. Keep the funeral director's proof of death too.",
+      grant: "Grant of Probate or Letters of Administration",
+      values: "Keep bank balances, appraisals and statements supporting the estate application. Yukon charges no grant fee where the estate does not exceed $25,000 and a $140 grant fee above that threshold."
+    },
+    NT: {
+      certificate: "Northwest Territories Vital Statistics issues death certificates. The current regular certificate fee is $26. Keep the funeral director's proof of death too.",
+      grant: "Grant of Probate / Administration or small-estate declaration",
+      values: "The standard NWT court-fee band uses property in the Northwest Territories after deducting debts and liabilities against that property. Rule 10 separately defines a small estate as net value reasonably appearing to be less than $35,000."
+    },
+    NU: {
+      certificate: "Nunavut Vital Statistics issues death certificates for deaths registered in Nunavut. The published certificate fee is $10.",
+      grant: "Grant of Probate or Administration",
+      values: "Nunavut court-fee bands use property in Nunavut after deducting debts and liabilities against that property. Keep written values and supporting statements with the estate file."
     }
   }[p];
   return [
     { id: "statement", label: "Statements of Death from the funeral director", note: "Ask for several originals at the outset. Institutions may each want proof of death." },
-    { id: "certificate", label: "The provincial death certificate", note: provinceData.certificate },
-    { id: "will", label: "The original will", note: "Keep the original safe. Court submission and proof requirements differ by province; Quebec distinguishes notarial from non-notarial wills." },
+    { id: "certificate", label: "The provincial / territorial death certificate", note: provinceData.certificate },
+    { id: "will", label: "The original will", note: "Keep the original safe. Court submission and proof requirements differ by province or territory; Quebec distinguishes notarial from non-notarial wills." },
     { id: "id", label: "Your own photo identification", note: "Institutions will ask you to prove who you are as well." },
     { id: "appointment", label: provinceData.grant, note: "If a court grant is needed. Some institutions will release nothing without it." },
     { id: "sin", label: "The deceased's Social Insurance Number", note: "The CRA and Service Canada both ask for it on the first call." },
@@ -913,6 +1036,18 @@ function helpSections(province) {
     QC: [
       { name: "Info-Social 811", tel: "811", detail: "Choose option 2 for free, confidential psychosocial support. Quebec specifically lists bereavement as a reason to call, and the service is available 24/7 in most regions.", url: "https://www.quebec.ca/en/health/finding-a-resource/info-social-811" },
       { name: "Quebec bereavement resources", detail: "The Quebec government lists additional services for people going through grief and bereavement.", url: "https://www.quebec.ca/en/family-and-support-for-individuals/death/better-cope-with-grief/seek-help-go-through-grief" }
+    ],
+    YT: [
+      { name: "Yukon HealthLine", tel: "811", detail: "Registered nurses provide health advice 24 hours a day and can direct callers to services in their community.", url: "https://yukon.ca/en/health-and-wellness/care-services/access-24-hour-health-advice-811" },
+      { name: "Your local health centre or doctor", detail: "Ask for grief, counselling or mental-health support available in your Yukon community." }
+    ],
+    NT: [
+      { name: "NWT 811 Mental Health and Wellness Support", tel: "811", detail: "Available around the clock. Press 1 for a nurse trained to help with mental wellness and addiction-recovery concerns, including grief and loss.", url: "https://www.hss.gov.nt.ca/en/services/811" },
+      { name: "Your community health or counselling service", detail: "811 can help identify the appropriate local or territorial service for grief and loss." }
+    ],
+    NU: [
+      { name: "Nunavut Kamatsiaqtut Help Line", tel: "1-800-265-3333", detail: "Anonymous and confidential telephone support, 24 hours a day, seven days a week. Iqaluit: 867-979-3333.", url: "https://livehealthy.gov.nu.ca/en/node/632" },
+      { name: "Your local health centre", detail: "Ask for grief, mental-health or counselling support available in your community." }
     ]
   };
   const legalByProvince = {
@@ -990,6 +1125,18 @@ function helpSections(province) {
     QC: [
       { name: "Quebec succession information", detail: "The Gouvernement du Québec succession pages explain will searches, verification of non-notarial wills, liquidator duties, inventory and distribution. For legal interpretation, contact a Quebec notary or lawyer.", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession" },
       { name: "Quebec will-search portal", detail: "The mandatory search uses one portal for the Barreau du Québec and Chambre des notaires registries and produces two search certificates.", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/will-search" }
+    ],
+    YT: [
+      { name: "Yukon Law Line", tel: "1-866-667-4305", detail: "Yukon Public Legal Education Association provides legal-information help. Whitehorse: 867-668-5297.", url: "https://yukon.ca/en/wills-and-estates" },
+      { name: "Supreme Court of Yukon Registry", tel: "867-667-5441", detail: "The Court publishes current Rule 64/65 estate rules and forms. Registry staff can provide procedural information but not legal advice.", url: "https://www.yukoncourts.ca/en/supreme-court/rules-forms" }
+    ],
+    NT: [
+      { name: "NWT Public Trustee Office", tel: "867-767-9252", detail: "The Public Trustee manages some deceased estates and publishes estate-administration information. It only acts in qualifying circumstances.", url: "https://www.justice.gov.nt.ca/en/boards-agencies/public-trustee-office/" },
+      { name: "NWT Estate Administration Rules", detail: "The Department of Justice publishes the current court rules, including the Rule 10 small-estate declaration forms.", url: "https://www.justice.gov.nt.ca/en/legislation/" }
+    ],
+    NU: [
+      { name: "Nunavut Court of Justice Registry", tel: "1-866-286-0546", detail: "The Registry publishes the Probate and Administration Rules, forms and fee structure. Iqaluit: 867-975-6100.", url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/rules-court" },
+      { name: "Nunavut Public Trustee", tel: "1-866-294-2127", detail: "The Public Trustee administers some estates where next of kin are not willing or able to act. Iqaluit: 867-975-6338.", url: "https://www.gov.nu.ca/sites/default/files/publications/2023-08/Nunavut%20Will%20Guide.pdf" }
     ]
   };
   return [
@@ -1004,7 +1151,7 @@ function helpSections(province) {
       { name: "Canada Revenue Agency", tel: "1-800-959-8281", detail: "Report the date of death, stop benefit payments, and ask what they need to recognise you as the legal representative.", url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/life-events/what-when-someone-died.html" },
       { name: "Employment Insurance", tel: "1-800-206-7218", detail: "If the person was receiving or might have been eligible for EI." }
     ] },
-    { id: "legal", tone: "normal", label: "If you need legal help", note: "Estate law is provincial. These routes change with the estate province selected in Settings.", items: legalByProvince[p] }
+    { id: "legal", tone: "normal", label: "If you need legal help", note: "Estate law is provincial or territorial. These routes change with the estate province or territory selected in Settings.", items: legalByProvince[p] }
   ];
 }
 const HELP_SECTIONS = helpSections("ON");
@@ -1056,6 +1203,18 @@ function guideSections(province) {
     QC: {
       body: "Quebec's Directeur de l'état civil issues death certificates and copies of the act of death. As of April 1, 2026, normal online processing is $38.50 for a certificate and $46.75 for a copy of an act. Some succession procedures, including Superior Court verification of a non-notarial will, call for the copy of the act of death.",
       links: [{ label: "Quebec certificates and copies of acts", url: "https://www.etatcivil.gouv.qc.ca/en/Certificate-copy/Certificate-Copy.html" }]
+    },
+    YT: {
+      body: "Yukon Vital Statistics issues death certificates for deaths registered in Yukon. The current fee is $10. Rule 64 requires a death certificate for the estate application unless the fact of death is certain and other acceptable proof is provided.",
+      links: [{ label: "Yukon death certificates", url: "https://yukon.ca/en/births-marriages-and-deaths/deaths/order-death-certificate" }]
+    },
+    NT: {
+      body: "Northwest Territories Vital Statistics issues death certificates. The current regular certificate fee is $26. The NWT small-estate Form 2 specifically lists a certified copy of the Certificate of Death, or other relevant proof where no certificate is available.",
+      links: [{ label: "NWT death certificate", url: "https://www.hss.gov.nt.ca/en/services/order-death-certificate" }]
+    },
+    NU: {
+      body: "Nunavut Vital Statistics issues death certificates for deaths registered in Nunavut. The published fee is $10. Keep the funeral-home proof as well because institutions and the Court may ask for different evidence.",
+      links: [{ label: "Nunavut Vital Statistics certificate application", url: "https://www.gov.nu.ca/sites/default/files/forms/2022-02/application_for_certificate_birth_marriage_death_eng.pdf" }]
     }
   };
   const probateByProvince = {
@@ -1068,7 +1227,10 @@ function guideSections(province) {
     NB: { title: "New Brunswick: current forms, waiting periods and 2026 probate tax", body: "New Brunswick Letters Probate use Form 2A or 2B; administration applications use Forms 2C through 2F depending on whether there is a will. The rules require 7 days to lapse after death before probate or administration with the will annexed can be granted, and 14 days before administration of an intestate estate can be granted. The current basic checklist accepts a copy of the death certificate and calls for detailed estate-value information. Probate-tax rates changed for applications filed on or after June 12, 2026. CRA clearance remains a separate federal step near the end.", links: [{ label: "New Brunswick Probate Court", url: "https://www.gnb.ca/content/cour/en/probate-court.html" }, { label: "New Brunswick probate checklist", url: "https://www.gnb.ca/content/dam/courts/pdf/probate-court-cour-des-successions/general-check-list-for-probate-applications.pdf" }, { label: "New Brunswick Probate Rules", url: "https://laws.gnb.ca/en/document/cr/84-9" }] },
     NL: { title: "Newfoundland and Labrador: notice first, then the Rule 56 petition", body: "The Supreme Court says the first step for Probate or Administration is to post a Notice of Application with the Registry. After the 5-day notice period, confirm that no caveat has been entered and no previous grant made before proceeding. The petition includes Form 56.10A inventory and valuation of the deceased's Newfoundland and Labrador property and assets; that value sets the estate-value court charge. Probate applications also include the will and Proof of Will. Administration applications commonly require a bond with two sureties unless the Court dispenses with it. CRA clearance remains a separate federal step near the end.", links: [{ label: "Newfoundland and Labrador probate and administration", url: "https://www.court.nl.ca/supreme/rules-practice-notes-and-forms/civil-proceedings/probate-and-admin/" }, { label: "Newfoundland and Labrador Court service fees", url: "https://www.court.nl.ca/supreme/schedule-of-fees/" }] },
     PE: { title: "P.E.I.: Rule 65 petition, inventory and post-grant notices", body: "P.E.I. applications for Letters Probate or Administration are made by petition in the Supreme Court Estates Section using Rule 65 forms. The Probate Act requires the inventory before the grant. After the grant, the Registrar publishes an estate notice in the Gazette calling for demands within six months, and the personal representative must serve notice of the grant on beneficiaries under the Act's service rules. CRA clearance remains a separate federal step near the end.", links: [{ label: "P.E.I. Probate Act", url: "https://www.princeedwardisland.ca/en/legislation/probate-act" }, { label: "P.E.I. Rule 65 estate forms", url: "https://www.courts.pe.ca/forms" }] },
-    QC: { title: "Quebec: succession, liquidator and will verification", body: "Quebec uses civil-law succession rules. The person settling the succession is the liquidator. A will search is mandatory. A notarial will does not need probate, while a holograph or witnessed will must be verified by a notary or the Superior Court. The liquidator registers the designation in the RDPRM, prepares an inventory, and publishes the required inventory notice in the RDPRM and a local newspaper. Successors generally have six months from death to accept or renounce, with an extension so they have at least 60 days after closure of the inventory. Before final distribution, use the Revenu Québec authorization process and obtain the CRA clearance certificate.", links: [{ label: "Quebec liquidator steps", url: "https://www.quebec.ca/en/family-and-support-for-individuals/death/what-to-do-in-the-event-of-death/checklist-of-steps-for-the-close-relatives-or-friends-and-the-liquidator/steps-to-be-taken-by-the-liquidator" }, { label: "Quebec will search", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/will-search" }, { label: "Revenu Québec distribution authorization", url: "https://www.revenuquebec.ca/en/online-services/forms-and-publications/current-details/mr-14-a-v/" }] }
+    QC: { title: "Quebec: succession, liquidator and will verification", body: "Quebec uses civil-law succession rules. The person settling the succession is the liquidator. A will search is mandatory. A notarial will does not need probate, while a holograph or witnessed will must be verified by a notary or the Superior Court. The liquidator registers the designation in the RDPRM, prepares an inventory, and publishes the required inventory notice in the RDPRM and a local newspaper. Successors generally have six months from death to accept or renounce, with an extension so they have at least 60 days after closure of the inventory. Before final distribution, use the Revenu Québec authorization process and obtain the CRA clearance certificate.", links: [{ label: "Quebec liquidator steps", url: "https://www.quebec.ca/en/family-and-support-for-individuals/death/what-to-do-in-the-event-of-death/checklist-of-steps-for-the-close-relatives-or-friends-and-the-liquidator/steps-to-be-taken-by-the-liquidator" }, { label: "Quebec will search", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/will-search" }, { label: "Revenu Québec distribution authorization", url: "https://www.revenuquebec.ca/en/online-services/forms-and-publications/current-details/mr-14-a-v/" }] },
+    YT: { title: "Yukon: Rule 64 notice, grant and special First Nation checks", body: "For a non-contentious Yukon estate, current Supreme Court Rule 64 governs the grant process. The Court will not issue the grant until 21 days have elapsed from mailing or delivery of the Notice of Application. The application includes proof of death and the applicable estate forms. Where the deceased was a member of a First Nation with a Final Agreement and Self-Government Agreement, the applicant must inquire about applicable First Nation inheritance, wills, intestacy or estate-administration laws; Rule 64 also has a separate requirement where the deceased was subject to the Indian Act. The grant fee is $0 at $25,000 or less and $140 above $25,000. CRA clearance remains a separate federal step near the end.", links: [{ label: "Yukon Rule 64", url: "https://www.yukoncourts.ca/sites/default/files/2022-12/2022%20Rule%2064%20-%20ADMINISTRATION%20OF%20ESTATES%20%28NON%20CONTENTIOUS%29.pdf" }, { label: "Yukon rules and forms", url: "https://www.yukoncourts.ca/en/supreme-court/rules-forms" }] },
+    NT: { title: "Northwest Territories: standard grant or Rule 10 small-estate route", body: "The NWT Supreme Court Estate Administration Rules govern probate and administration. The standard court fee uses the net value of property in the Northwest Territories. Under Rule 10, an estate whose net value reasonably appears to be less than $35,000 can use a separate application for a declaration of small estate, using Form 2 and Form 3, instead of a grant if the Court approves it. The Department of Justice also publishes estate-administration and will-search information. CRA clearance remains a separate federal step near the end.", links: [{ label: "NWT Estate Administration Rules", url: "https://www.justice.gov.nt.ca/en/files/court-rules/Judicature%20Act/Estate%20Administration%20Rules/Estate%20Administration%20Rules.pdf" }, { label: "NWT estate administration", url: "https://www.justice.gov.nt.ca/en/estate-administration/" }] },
+    NU: { title: "Nunavut: Probate and Administration Rules and court-fee bands", body: "Nunavut Court of Justice probate and administration applications use the published Probate and Administration Rules and forms. Form 1 is the basic application for probate or administration, with supporting affidavits and schedules depending on the estate. The legislated court-fee bands are based on the value of property in Nunavut after deducting debts and liabilities against that property. The Court Registry publishes the current rules and fee structure and can answer procedural questions. CRA clearance remains a separate federal step near the end.", links: [{ label: "Nunavut Probate and Administration Rules", url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/rules-court" }, { label: "Nunavut Court fees", url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/court-policies-and-fees" }] }
   };
   const docs = docsByProvince[p] || docsByProvince.ON;
   const probate = probateByProvince[p] || probateByProvince.ON;
@@ -1079,7 +1241,7 @@ function guideSections(province) {
     { id: "money", title: "The 60-day one", body: p === "QC" ? "For the QPP death benefit, the maximum is $2,500. During the first 60 days after death, priority can go to the person or charity that paid funeral expenses and provides proof; after 60 days, heirs may receive the benefit under the published rules. The application itself can be filed for up to five years after death." : "Service Canada asks for the CPP death benefit application within 60 days of the death, on form ISP1200. The base amount is $2,500. A further $2,500 is added only where the person died before ever collecting a CPP retirement or disability pension and left no surviving spouse or common-law partner.", links: p === "QC" ? [{ label: "QPP death benefit", url: "https://www.retraitequebec.gouv.qc.ca/en/citizens/death/death-benefit-quebec-pension-plan" }] : [{ label: "CPP amounts, on canada.ca", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/payment-amounts.html" }] },
     { id: "fraud", title: "Tell the credit bureaus", body: "Equifax and TransUnion should both be told so that new credit cannot easily be taken out in the name of the person who died.", links: [{ label: "Notifying a death, on canada.ca", url: "https://www.canada.ca/en/services/life-events/death/notify.html" }] },
     { id: "probate", title: probate.title, body: probate.body, links: probate.links },
-    { id: "notadvice", title: "None of this is advice", body: "Whether an estate needs probate at all, how an asset passes, what the will means, and what should be filed are legal and tax questions. This app keeps your record of the process. It does not tell you what to do; use the province-specific legal-help route under Help when you need advice.", links: [] }
+    { id: "notadvice", title: "None of this is advice", body: "Whether an estate needs probate at all, how an asset passes, what the will means, and what should be filed are legal and tax questions. This app keeps your record of the process. It does not tell you what to do; use the jurisdiction-specific legal-help route under Help when you need advice.", links: [] }
   ];
 }
 const GUIDE_SECTIONS = guideSections("ON");
@@ -1178,14 +1340,22 @@ function spanText(fromISO, toISO) {
 const STORAGE_KEY = "estate-file-v1";
 
 // ---- Language.
-// V1A ships in English only. The previous prototype exposed a partially
-// translated French interface, which was more misleading than useful. Keep
-// the preference key reserved so a future complete translation can be added
-// without colliding with estate data.
+// Kept outside the estate record so switching language never touches estate
+// data. On first launch the interface follows the phone language.
 const LANG_KEY = "estate-file-lang";
-function loadLangPref() { return "en"; }
-function saveLangPref() {
-  try { localStorage.setItem(LANG_KEY, "en"); } catch {}
+function loadLangPref() {
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved === "fr" || saved === "en") return saved;
+  } catch {}
+  try {
+    const nav = (navigator.languages && navigator.languages[0]) || navigator.language || "";
+    if (/^fr\b/i.test(nav)) return "fr";
+  } catch {}
+  return "en";
+}
+function saveLangPref(l) {
+  try { localStorage.setItem(LANG_KEY, l); } catch {}
 }
 
 // Text size is kept out of the record for the same reason as language: a
@@ -1242,7 +1412,7 @@ const INTRO_CARDS = [
   {
     id: "help",
     title: t("Help is always one tap away"),
-    body: t("The Help button at the top of every screen has crisis and grief support first, then the government numbers you may need and province-specific legal-help routes. Choose the estate province in Settings so the local information is right.")
+    body: t("The Help button at the top of every screen has crisis and grief support first, then the government numbers you may need and jurisdiction-specific legal-help routes. Choose the estate province or territory in Settings so the local information is right.")
   },
   {
     id: "start",
@@ -1547,7 +1717,12 @@ function EstateFile() {
     setLangState(l);
     try { document.documentElement.lang = l; } catch {}
   };
-  useEffect(() => { try { document.documentElement.lang = lang; } catch {} }, [lang]);
+  useEffect(() => {
+    try {
+      document.documentElement.lang = lang;
+      document.title = lang === "fr" ? "Dossier successoral — Votre propre dossier" : "Estate File — An Executor's Own Record";
+    } catch {}
+  }, [lang]);
 
   const [tab, setTab] = useState("claims");
   const [openClaim, setOpenClaim] = useState(null);
@@ -2023,9 +2198,9 @@ function EstateFile() {
     L.push(t("STEP SUMMARY"));
     L.push(rule);
     L.push(t("Step: ") + c.condition);
-    if (c.type) L.push(t("Benefit: ") + c.type);
+    if (c.type) L.push(t("Category: ") + t(c.type));
     if (c.fileNumber) L.push(t("Reference number: ") + c.fileNumber);
-    if (c.dateApplied) L.push(t("Applied: ") + formatDate(c.dateApplied) + t("  (open ") + spanText(c.dateApplied) + ")");
+    if (c.dateApplied) L.push(t("Started / filed: ") + formatDate(c.dateApplied) + t("  (elapsed ") + spanText(c.dateApplied) + ")");
     L.push(t("Where it stands: ") + t(stageLabel(c.stage)));
     L.push("");
 
@@ -2129,7 +2304,7 @@ function EstateFile() {
     const L = [];
     L.push(t("MY ESTATE FILE"));
     L.push(rule);
-    L.push(t("Estate province: ") + provinceDef(province).label);
+    L.push(t("Estate province / territory: ") + t(provinceDef(province).label));
     L.push(t("Prepared from my own records on ") + formatDate(todayISO()) + ".");
     L.push(t("This is my personal record and may contain errors. The institutions' own records are authoritative."));
     L.push("");
@@ -2321,16 +2496,28 @@ function EstateFile() {
         record: { province, claims, reminders, contacts, redress, evidence, statements, conditions },
         documents: docs
       };
-      const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "estate-file-backup-" + todayISO() + ".json";
-      document.body.appendChild(a);
-      a.click();
-      // Revoked on a delay rather than immediately: some browsers have not
-      // finished with the URL by the time the click handler returns.
-      setTimeout(() => { try { URL.revokeObjectURL(url); a.remove(); } catch {} }, 4000);
+      const json = JSON.stringify(payload);
+      const blob = new Blob([json], { type: "application/json" });
+      const filename = "estate-file-backup-" + todayISO() + ".json";
+      // The App Store build exposes a tiny native share bridge. WKWebView does
+      // not reliably honour the HTML download attribute for blob URLs, so on
+      // iPhone/iPad hand the finished backup to iOS and let the user choose
+      // Files, iCloud, Mail, AirDrop, etc. The web/PWA build keeps the normal
+      // browser download path below.
+      const nativeBackup = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.saveBackup;
+      if (nativeBackup) {
+        nativeBackup.postMessage({ filename, text: json });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        // Revoked on a delay rather than immediately: some browsers have not
+        // finished with the URL by the time the click handler returns.
+        setTimeout(() => { try { URL.revokeObjectURL(url); a.remove(); } catch {} }, 4000);
+      }
       const mb = Math.round(blob.size / 104857.6) / 10;
       flash(t("Backup file made") + " (" + mb + " MB, " + docs.length + " " +
             t(docs.length === 1 ? t(" document") : t(" documents")).trim() + ")");
@@ -2514,14 +2701,14 @@ function EstateFile() {
         }, t(stageLabel(c.stage)))
       ),
       h("div", { style: { fontFamily: font.body, fontSize: fs(11.5), color: T.inkSoft, marginTop: 4 } },
-        c.type || "",
+        t(c.type || ""),
         c.fileNumber ? "  ·  " + c.fileNumber : ""
       ),
       h(StageTrack, { claim: c }),
       h("div", { style: { fontFamily: font.body, fontSize: fs(11.5), color: T.ink, marginTop: 8 } },
         c.dateApplied
-          ? h("span", null, t("Open "), h("b", null, spanText(c.dateApplied)), t(" · applied "), formatDate(c.dateApplied))
-          : h("span", { style: { color: T.inkSoft } }, t("No application date set"))
+          ? h("span", null, t("Elapsed "), h("b", null, spanText(c.dateApplied)), t(" · started "), formatDate(c.dateApplied))
+          : h("span", { style: { color: T.inkSoft } }, t("No start date set"))
       ),
       (docs || rem) ? h("div", { style: { fontFamily: font.body, fontSize: fs(10.5), color: T.inkSoft, marginTop: 4 } },
         [docs ? docs + (docs === 1 ? t(" document") : t(" documents")) : null,
@@ -2611,9 +2798,9 @@ function EstateFile() {
 
       h("div", { style: { fontFamily: font.display, fontSize: fs(23), color: T.heading, lineHeight: 1.15 } }, c.condition),
       h("div", { style: { fontFamily: font.body, fontSize: fs(12), color: T.inkSoft, marginTop: 3 } },
-        c.type || "", c.fileNumber ? "  ·  " + c.fileNumber : ""),
+        t(c.type || ""), c.fileNumber ? "  ·  " + c.fileNumber : ""),
       c.dateApplied ? h("div", { style: { fontFamily: font.body, fontSize: fs(12.5), color: T.ink, marginTop: 6 } },
-        t("Applied "), formatDate(c.dateApplied), t(". Open "), h("b", null, spanText(c.dateApplied)), ".") : null,
+        t("Started "), formatDate(c.dateApplied), t(". Elapsed "), h("b", null, spanText(c.dateApplied)), ".") : null,
 
       h("div", { style: { marginTop: 16, marginBottom: 6, fontFamily: font.display, fontSize: fs(17), color: T.heading } }, t("Where it stands")),
       h("div", { style: { fontSize: fs(11), color: T.inkSoft, marginBottom: 9, lineHeight: 1.45 } },
@@ -2808,7 +2995,7 @@ function EstateFile() {
       steps.length === 0
         ? h("div", { style: { marginTop: 7 } },
             h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5, marginBottom: 9 } },
-              t("If this estate needs a court grant, you can track the main milestones here. The sequence changes with the estate province selected in Settings.")),
+              t("If this estate needs a court grant, you can track the main milestones here. The sequence changes with the estate province or territory selected in Settings.")),
             h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 10, overflow: "hidden" } },
               probateLevels(province).map((l, i) => h("div", {
                 key: l.id,
@@ -2819,7 +3006,7 @@ function EstateFile() {
               ))
             ),
             h("div", { style: { background: T.goldSoft, border: "1px solid " + T.gold, borderRadius: 10, padding: "11px 13px", fontSize: fs(11.5), color: T.ink, lineHeight: 1.5, marginTop: 9 } },
-              t("Probate and succession procedures differ by province. Record the actual dates from your court, notary and government paperwork."),
+              t("Probate and succession procedures differ by province or territory. Record the actual dates from your court, notary and government paperwork."),
               h("div", { style: { marginTop: 6, color: T.inkSoft } },
                 province === "ON" ? t("Ontario's Estate Information Return is generally due within 180 calendar days after the estate certificate is issued.") :
                 province === "BC" ? t("B.C. normally requires the P1 notice and a wait of at least 21 days before the grant application is made.") :
@@ -2830,6 +3017,9 @@ function EstateFile() {
                 province === "NB" ? t("New Brunswick uses province-specific Probate Court forms, with a 7-day minimum before probate/administration with will annexed can be granted and 14 days for intestate administration.") :
                 province === "NL" ? t("Newfoundland and Labrador starts with a Notice of Application and 5-day notice period, then uses Rule 56 petition and inventory materials.") :
                 province === "PE" ? t("Prince Edward Island uses Rule 65 petitions and inventory requirements, followed by Gazette estate-notice and beneficiary-notice work after the grant.") :
+                province === "YT" ? t("Yukon Rule 64 requires a 21-day notice period before a grant will issue and contains special First Nation / Indian Act estate checks where applicable.") :
+                province === "NT" ? t("The NWT uses fixed court-fee bands and has a separate Rule 10 small-estate declaration route where net value reasonably appears to be less than $35,000.") :
+                province === "NU" ? t("Nunavut uses the Nunavut Court of Justice Probate and Administration Rules and fixed court-fee bands based on net Nunavut property.") :
                 t("Quebec uses a mandatory will search, liquidator designation, inventory and RDPRM notices. A notarial will does not need probate; non-notarial wills must be verified.")))
           )
         : h("div", { style: { marginTop: 8 } },
@@ -2868,7 +3058,7 @@ function EstateFile() {
     h("div", { key: "t", style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } },
       rdEditingId ? t("Edit this step") : t(province === "QC" ? "Add a succession step" : "Add a probate step")),
     h("div", { key: "b", style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.45 } },
-      t(province === "QC" ? "Your own record of the succession process. Nothing entered here is submitted to a court, notary, Revenu Québec, the CRA or any other authority." : "Your own record of the probate process. Nothing entered here is submitted to a court, provincial authority or the CRA.")),
+      t(province === "QC" ? "Your own record of the succession process. Nothing entered here is submitted to a court, notary, Revenu Québec, the CRA or any other authority." : "Your own record of the probate process. Nothing entered here is submitted to a court, provincial or territorial authority, or the CRA.")),
     h(Field, { key: "lv", label: t("Which stage"), hint: redressLevel(rdLevel, province).blurb },
       h("select", { value: rdLevel, onChange: (e) => setRdLevel(e.currentTarget.value), style: { ...inputStyle(), width: "100%" } },
         probateLevels(province).map((l) => h("option", { key: l.id, value: l.id }, t(l.label))))),
@@ -2990,8 +3180,8 @@ function EstateFile() {
   };
 
   const provincePicker = (marginBottom = 14) => h("div", { style: { marginBottom } },
-    h("div", { style: { ...labelStyle(), marginBottom: 6 } }, t("Estate province")),
-    h("div", { role: "group", "aria-label": t("Estate province"), style: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 } },
+    h("div", { style: { ...labelStyle(), marginBottom: 6 } }, t("Estate province or territory")),
+    h("div", { role: "group", "aria-label": t("Estate province or territory"), style: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 } },
       PROVINCES.map((p) => h("button", {
         key: p.id,
         onClick: () => chooseProvince(p.id),
@@ -3003,7 +3193,7 @@ function EstateFile() {
           color: province === p.id ? "#fff" : T.ink,
           fontFamily: font.body, fontSize: fs(11.5), fontWeight: province === p.id ? 800 : 700
         }
-      }, p.short)))
+      }, t(p.short))))
   );
 
   const estimateScreen = () => {
@@ -3043,6 +3233,18 @@ function EstateFile() {
         { label: "Quebec will verification", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/settlement/succession-will/probating" },
         { label: "Quebec mandatory will search", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/will-search" },
         { label: "Quebec liquidator designation", url: "https://www.quebec.ca/en/justice-et-etat-civil/testament-succession/succession/to-do/liquidator/appointment" }
+      ],
+      YT: [
+        { label: "Yukon Supreme Court Appendix C fees", url: "https://www.yukoncourts.ca/sites/default/files/2023-12/Appendix%20C.pdf" },
+        { label: "Yukon Rule 64", url: "https://www.yukoncourts.ca/sites/default/files/2022-12/2022%20Rule%2064%20-%20ADMINISTRATION%20OF%20ESTATES%20%28NON%20CONTENTIOUS%29.pdf" }
+      ],
+      NT: [
+        { label: "NWT Court Services Fees Regulations", url: "https://www.justice.gov.nt.ca/en/legislation/" },
+        { label: "NWT Estate Administration Rules", url: "https://www.justice.gov.nt.ca/en/files/court-rules/Judicature%20Act/Estate%20Administration%20Rules/Estate%20Administration%20Rules.pdf" }
+      ],
+      NU: [
+        { label: "Nunavut Court fee structure", url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/court-policies-and-fees" },
+        { label: "Nunavut Probate and Administration Rules", url: "https://www.nunavutcourts.ca/nunavut-court-justice/rules-policies-directives-announcements/rules-court" }
       ]
     };
     const hintByProvince = {
@@ -3055,7 +3257,10 @@ function EstateFile() {
       NB: "Enter the New Brunswick estate value used for probate tax. The calculator applies the rates effective June 12, 2026; whether particular property belongs in the application is a legal question.",
       NL: "Enter the Newfoundland and Labrador estate value used on Form 56.10A. The Court says the inventory value is used to set the estate-value court charge.",
       PE: "Enter the P.E.I. probate value for the standard petition fee. The Probate Act defines probate value; get legal advice if you are unsure what property belongs in it.",
-      QC: "Quebec does not use an estate-value probate tax. The important cost question is whether a non-notarial will must be verified, plus RDPRM, newspaper, notary or court costs that depend on the file."
+      QC: "Quebec does not use an estate-value probate tax. The important cost question is whether a non-notarial will must be verified, plus RDPRM, newspaper, notary or court costs that depend on the file.",
+      YT: "Enter the Yukon estate value used for the grant-fee threshold. Whether a grant is required and what property belongs in the estate are legal questions.",
+      NT: "Enter the value of property in the Northwest Territories after deducting debts and liabilities against that property, as used by the current court-fee bands.",
+      NU: "Enter the value of property in Nunavut after deducting debts and liabilities against that property, as used by the current court-fee bands."
     };
     const emptyByProvince = {
       ON: "Ontario: $0 on the first $50,000, then $15 per $1,000 or part above it; the estate value is rounded up to the next $1,000.",
@@ -3067,7 +3272,10 @@ function EstateFile() {
       NB: "New Brunswick (applications filed on or after June 12, 2026): $200 up to $20,000; then $5 per $1,000 or part over $20,000 through $100,000; above $100,000, $600 plus $15 per $1,000 or part over $100,000.",
       NL: "Newfoundland and Labrador: $60 where the estate value does not exceed $1,000; above $1,000, $60 plus $0.60 for each additional $100 in value (0.6% of the portion over $1,000).",
       PE: "Prince Edward Island: $50 up to $10,000; $100 to $25,000; $200 to $50,000; $400 to $100,000; above $100,000, $400 plus $4 per $1,000 or fraction over $100,000.",
-      QC: "Quebec: no estate-value probate tax. A notarial will does not need probate; holograph and witnessed wills require verification. Current RDPRM fees shown by Quebec are $59 for liquidator designation and $59 for each listed closure notice; other costs vary."
+      QC: "Quebec: no estate-value probate tax. A notarial will does not need probate; holograph and witnessed wills require verification. Current RDPRM fees shown by Quebec are $59 for liquidator designation and $59 for each listed closure notice; other costs vary.",
+      YT: "Yukon: no grant fee where the estate does not exceed $25,000; $140 for a grant, ancillary grant or resealing where the estate exceeds $25,000.",
+      NT: "Northwest Territories: $30 up to $10,000; $110 to $25,000; $215 to $125,000; $325 to $250,000; $435 above $250,000. A separate Rule 10 small-estate declaration route exists where net value reasonably appears under $35,000.",
+      NU: "Nunavut: $30 up to $10,000; $110 to $25,000; $215 to $125,000; $325 to $250,000; $425 above $250,000. Certified copies, caveats and other services can add separate fees."
     };
     const sources = sourcesByProvince[province] || sourcesByProvince.ON;
     const hint = hintByProvince[province] || hintByProvince.ON;
@@ -3153,6 +3361,27 @@ function EstateFile() {
           h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
         h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
           t("This is the standard petition fee only. The Probate Act has separate fees for some proceedings and an additional $1 fee for each renunciation or dedimus where probate value exceeds $1,000.")));
+    } else if (hasInput && province === "YT") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Yukon grant / resealing fee")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("Appendix C charges no grant fee where the estate does not exceed $25,000 and $140 above that threshold. A $0 fee does not by itself mean a grant is unnecessary.")));
+    } else if (hasInput && province === "NT") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("NWT estate administration court fee")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("The standard fee band uses net property in the NWT. Rule 10 also provides a separate small-estate declaration route where net value reasonably appears to be less than $35,000; that is a legal/process choice, not an automatic calculator result.")));
+    } else if (hasInput && province === "NU") {
+      resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } },
+          h("span", { style: { fontFamily: font.display, fontSize: fs(15), color: T.heading } }, t("Nunavut probate / administration court fee")),
+          h("span", { style: { fontFamily: font.body, fontSize: fs(19), fontWeight: 800, color: T.gold } }, money(calc.total))),
+        h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 8, lineHeight: 1.45 } },
+          t("The fee band uses net property in Nunavut. Certified copies, caveats and other court services have separate fees and are not included here.")));
     } else if (province === "QC") {
       resultCard = h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px" } },
         h("div", { style: { fontFamily: font.display, fontSize: fs(16), color: T.heading, marginBottom: 7 } }, t("Quebec succession costs work differently")),
@@ -3165,7 +3394,7 @@ function EstateFile() {
     return h("div", { style: { padding: 16 } },
       h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t(province === "QC" ? "Quebec succession costs" : "Work out the probate fee")),
       h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.5 } },
-        province === "QC" ? t("Quebec does not use an estate-value probate tax. This screen shows the succession cost structure and the official sources instead of asking for a meaningless estate-value calculation.") : p.label + t(" rules from a value you enter. Arithmetic on published government rates, not a legal decision about what belongs in the estate.")),
+        province === "QC" ? t("Quebec does not use an estate-value probate tax. This screen shows the succession cost structure and the official sources instead of asking for a meaningless estate-value calculation.") : t(p.label) + t(" rules from a value you enter. Arithmetic on published government rates, not a legal decision about what belongs in the estate.")),
 
       provincePicker(14),
 
@@ -3186,13 +3415,13 @@ function EstateFile() {
 
       h("div", { style: { marginTop: 12, background: T.goldSoft, border: "1px solid " + T.gold, borderRadius: 10, padding: "11px 13px", fontSize: fs(11.5), color: T.ink, lineHeight: 1.55 } },
         h("b", null, t("This does not decide whether probate is needed or what value belongs in the calculation.")),
-        t(" Asset ownership, joint interests, beneficiary designations, debts and property outside the province can change the legal answer. Use the province-specific legal-help route under Help if you are unsure.")),
+        t(" Asset ownership, joint interests, beneficiary designations, debts and property outside the jurisdiction can change the legal answer. Use the jurisdiction-specific legal-help route under Help if you are unsure.")),
 
       h("div", { style: { marginTop: 10, fontSize: fs(10.5), color: T.inkSoft, lineHeight: 1.5 } },
         t("Rates and rules were checked in ") + RATES_READ + t(". Check the authoritative source") + (sources.length > 1 ? t("s") : "") + t(" before relying on the estimate: "),
         sources.map((source, i) => h(React.Fragment, { key: source.url },
           i ? t(" · ") : null,
-          h("a", { href: source.url, target: "_blank", rel: "noopener noreferrer", style: { color: T.blue, fontWeight: 700, textDecoration: "none" } }, source.label)
+          h("a", { href: frUrl(source.url).url, target: "_blank", rel: "noopener noreferrer", style: { color: T.blue, fontWeight: 700, textDecoration: "none" } }, t(source.label) + (frUrl(source.url).english ? t(" (page in English)") : ""))
         ))),
 
       h("div", { style: { marginTop: 14 } },
@@ -3207,7 +3436,7 @@ function EstateFile() {
   const bodyScreen = () => h("div", { style: { padding: 16 } },
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("The estate inventory")),
     h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 14, lineHeight: 1.5 } },
-      t("Every account, property and debt, what it is worth at the date of death, and how it passes. Courts, provincial estate processes and the CRA can all require parts of this same information. Build it once here instead of rebuilding it from memory.")),
+      t("Every account, property and debt, what it is worth at the date of death, and how it passes. Courts, provincial or territorial estate processes and the CRA can all require parts of this same information. Build it once here instead of rebuilding it from memory.")),
 
     h("div", { style: { display: "grid", gridTemplateColumns: conditions.length ? "1fr 1fr" : "1fr", gap: 8, marginBottom: 14 } },
       h("button", {
@@ -3250,7 +3479,7 @@ function EstateFile() {
   const benefitsScreen = () => h("div", { style: { padding: 16 } },
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("What exists")),
     h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 12, lineHeight: 1.5 } },
-      t(province === "QC" ? "Quebec uses the Québec Pension Plan for its main survivor benefits; federal OAS, CRA and other Canada-wide information still applies. Estate information below follows Quebec succession rules." : "Federal benefits apply across Canada. Provincial estate information below changes with the estate province selected here and in Settings.")),
+      t(province === "QC" ? "Quebec uses the Québec Pension Plan for its main survivor benefits; federal OAS, CRA and other Canada-wide information still applies. Estate information below follows Quebec succession rules." : "Federal benefits apply across Canada. Provincial or territorial estate information below changes with the estate province or territory selected here and in Settings.")),
 
     provincePicker(14),
 
@@ -3300,7 +3529,7 @@ function EstateFile() {
       }
     },
       h("b", null, t("Every number in one place.")),
-      t(" Crisis and grief support, the government numbers you may need, and province-specific legal-help routes. Tap here, or Help at the top of any screen."))
+      t(" Crisis and grief support, the government numbers you may need, and jurisdiction-specific legal-help routes. Tap here, or Help at the top of any screen."))
   );
 
   const summarySheet = () => sheet(() => setSummaryOpen(false), [
@@ -3654,12 +3883,31 @@ function EstateFile() {
   ]);
 
   const settingsScreen = () => h("div", { style: { padding: 16 } },
-    h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Estate province")),
+    h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Estate province or territory")),
     h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 8, lineHeight: 1.45 } },
-      t("Choose the province whose estate rules apply. All 10 provinces are supported. Federal information stays Canada-wide; Quebec uses QPP survivor benefits, and Probate / Succession, provincial Benefits, Help and the guide change with this choice.")),
+      t("Choose the province or territory whose estate rules apply. All 13 Canadian jurisdictions are supported. Federal information stays Canada-wide; Quebec uses QPP survivor benefits, and Probate / Succession, local estate information, Help and the guide change with this choice.")),
     provincePicker(24),
 
-    // V1A is English-only; the language control returns when the estate-specific French translation is complete.
+    // Language is kept independent of the estate record. Each option is
+    // written in its own language so it remains findable from either side.
+    h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Language")),
+    h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 8, lineHeight: 1.45 } },
+      t("Your estate record and everything you have written stay exactly as they are.")),
+    h("div", { role: "group", "aria-label": t("Language"), style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 24 } },
+      [["en", "English"], ["fr", "Fran\u00e7ais"]].map((pair) => h("button", {
+        key: pair[0],
+        onClick: () => chooseLang(pair[0]),
+        "aria-pressed": lang === pair[0] ? "true" : "false",
+        lang: pair[0],
+        style: {
+          padding: "12px", borderRadius: 10, cursor: "pointer",
+          border: "1.5px solid " + (lang === pair[0] ? T.primary : T.line),
+          background: lang === pair[0] ? T.primary : "#fff",
+          color: lang === pair[0] ? "#fff" : T.ink,
+          fontFamily: font.body, fontSize: fs(13.5), fontWeight: lang === pair[0] ? 800 : 600
+        }
+      }, pair[1]))),
+
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Appearance")),
     h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginBottom: 8, lineHeight: 1.45 } },
       t("Night is easier on the eyes in the dark, and on light sensitivity generally. Follow the phone switches when it does.")),
@@ -3751,7 +3999,7 @@ function EstateFile() {
 
     h("div", { style: { fontFamily: font.display, fontSize: fs(20), color: T.heading, marginBottom: 3 } }, t("Getting help")),
     h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 10, padding: "12px 14px", fontSize: fs(12), color: T.ink, lineHeight: 1.55, marginBottom: 24 } },
-      t("Legal-help routes differ by province. Help shows the current route for ") + provinceDef(province).label + t(", along with the government numbers and grief supports that apply."),
+      t("Legal-help routes differ by province or territory. Help shows the current route for ") + t(provinceDef(province).label) + t(", along with the government numbers and grief supports that apply."),
       h("div", { style: { marginTop: 8, color: T.inkSoft } }, t("All the numbers are under Help, at the top of any screen."))
     ),
 
@@ -3772,7 +4020,7 @@ function EstateFile() {
           t(t("The app's address. Open it in Safari on any phone and add it to the home screen.")))),
       t("Estate File is not affiliated with, endorsed by, or connected to any government department, court, law firm or accountancy practice. It reads no file and submits nothing on your behalf. It is a private place to keep your own record."),
       h("div", { style: { marginTop: 8 } },
-        province === "QC" ? t("The Succession tab uses published Quebec succession rules checked in ") + RATES_READ + t(". Quebec has no estate-value probate tax; the app records the civil-law process and known public registration fees without pretending to price notary or court work.") : t("The Probate tab uses the published ") + provinceDef(province).label + t(" fee rules checked in ") + RATES_READ + t(". It shows arithmetic on a value you enter. It does not decide what the estate is worth, whether a court grant is needed, or how any asset passes. Those are legal questions.")),
+        province === "QC" ? t("The Succession tab uses published Quebec succession rules checked in ") + RATES_READ + t(". Quebec has no estate-value probate tax; the app records the civil-law process and known public registration fees without pretending to price notary or court work.") : t("The Probate tab uses the published ") + t(provinceDef(province).label) + t(" fee rules checked in ") + RATES_READ + t(". It shows arithmetic on a value you enter. It does not decide what the estate is worth, whether a court grant is needed, or how any asset passes. Those are legal questions.")),
       h("div", { style: { marginTop: 8 } },
         t("Nothing here is legal, tax or financial advice. Benefit eligibility is decided by the responsible government authority; legal questions about the will, probate or a Quebec succession belong with a qualified legal professional.")),
       h("div", { style: { marginTop: 8 } },
@@ -3907,7 +4155,7 @@ function EstateFile() {
           }, t("Open this PDF"))
         )
       : h("img", { key: "i", src: viewingDoc.full, alt: viewingDoc.title, style: { display: "block", width: "100%", borderRadius: 10, border: "1px solid " + T.line } }),
-    h("div", { key: "d", style: { fontSize: fs(11), color: T.inkSoft, marginTop: 8 } }, "Added ", formatDate(viewingDoc.addedAt)),
+    h("div", { key: "d", style: { fontSize: fs(11), color: T.inkSoft, marginTop: 8 } }, t("Added "), formatDate(viewingDoc.addedAt)),
     h("div", { key: "a", style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 } },
       h("button", { onClick: () => setViewingDoc(null), style: { padding: "13px", borderRadius: 10, border: "1px solid " + T.line, background: T.btn2, fontFamily: font.body, fontSize: fs(13), fontWeight: 700, cursor: "pointer" } }, t("Close")),
       h("button", {
@@ -3992,7 +4240,7 @@ function EstateFile() {
     { id: "claims", label: t("Steps"),
       about: "Every notification and filing: where each one stands, your notes, documents, and every call logged." },
     { id: "body", label: t("Estate"),
-      about: "The estate inventory: every account, property and debt, what it is worth, and how it passes. Courts, provincial filings and the CRA can all need parts of this same record." },
+      about: "The estate inventory: every account, property and debt, what it is worth, and how it passes. Courts, provincial or territorial filings and the CRA can all need parts of this same record." },
     { id: "reminders", label: dueCount ? t("Dates (") + dueCount + ")" : t("Dates"),
       about: "Dates you have been given: a 180-day return, a court date, a form due back. The app keeps the ones you enter; it does not work out your deadlines for you." },
     { id: "documents", label: t("Docs"),
@@ -4000,7 +4248,7 @@ function EstateFile() {
     { id: "benefits", label: t("Benefits"),
       about: province === "QC" ? "Quebec Pension Plan survivor benefits, federal support and Quebec succession information. It does not decide eligibility; use Retraite Québec and the responsible government authority." : "Benefits and support that may be available to a survivor or the estate, plus the calls that stop payments going out incorrectly. It does not decide eligibility; the responsible government authority does." },
     { id: "estimate", label: t(province === "QC" ? "Succession" : "Probate"),
-      about: province === "QC" ? "Quebec succession / will-verification information, RDPRM steps and liquidator process tracking. Information, not legal advice." : provinceDef(province).label + " probate / grant fees from an estate value, plus the province-specific process tracker. Arithmetic, not legal advice." },
+      about: province === "QC" ? "Quebec succession / will-verification information, RDPRM steps and liquidator process tracking. Information, not legal advice." : provinceDef(province).label + " probate / grant fees from an estate value, plus the jurisdiction-specific process tracker. Arithmetic, not legal advice." },
     { id: "settings", label: t("Settings"),
       about: "Appearance, text size, the PIN lock, backups, and printing your whole file." }
   ];
@@ -4142,17 +4390,38 @@ function EstateFile() {
             h("div", { style: { fontSize: fs(12.5), opacity: 0.72, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, t("An executor's own record"))
           )
         ),
-        h("button", {
-          onClick: () => setHelpOpen(true),
-          "aria-label": t("Help and phone numbers"),
-          style: {
-            flex: "0 0 auto", cursor: "pointer", marginTop: 4,
-            background: "transparent", border: "1px solid rgba(251,248,240,0.4)",
-            borderRadius: 999, padding: "0 16px", minHeight: 44,
-            display: "inline-flex", alignItems: "center",
-            color: T.cream, fontFamily: font.body, fontSize: fs(12), fontWeight: 800
-          }
-        }, t("Help"))
+        h("div", { style: { flex: "0 0 auto", display: "flex", alignItems: "center", gap: 10, marginTop: 4 } },
+          h("div", {
+            role: "group",
+            "aria-label": t("Language"),
+            style: { display: "flex", alignItems: "center", gap: 5 }
+          },
+            [["en", "EN"], ["fr", "FR"]].map((pair, i) => [
+              i ? h("span", { key: "sep", "aria-hidden": "true", style: { color: T.cream, opacity: 0.3, fontFamily: font.body, fontSize: fs(11) } }, "|") : null,
+              h("button", {
+                key: pair[0], onClick: () => chooseLang(pair[0]),
+                "aria-pressed": lang === pair[0] ? "true" : "false", lang: pair[0],
+                style: {
+                  cursor: "pointer", background: "transparent", border: "none",
+                  padding: "15px 6px", margin: "-9px -2px", color: T.cream, fontFamily: font.body, fontSize: fs(11.5),
+                  fontWeight: lang === pair[0] ? 800 : 600, opacity: lang === pair[0] ? 1 : 0.55,
+                  textDecoration: lang === pair[0] ? "underline" : "none"
+                }
+              }, pair[1])
+            ])
+          ),
+          h("button", {
+            onClick: () => setHelpOpen(true),
+            "aria-label": t("Help and phone numbers"),
+            style: {
+              flex: "0 0 auto", cursor: "pointer",
+              background: "transparent", border: "1px solid rgba(251,248,240,0.4)",
+              borderRadius: 999, padding: "0 14px", minHeight: 44,
+              display: "inline-flex", alignItems: "center",
+              color: T.cream, fontFamily: font.body, fontSize: fs(12), fontWeight: 800
+            }
+          }, t("Help"))
+        )
       ),
       // The tab strip sits in its own relative box so a fade can be laid over
       // the right edge. If the labels ever do overflow, on a smaller phone or
