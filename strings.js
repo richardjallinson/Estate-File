@@ -329,8 +329,7 @@ const FR = {
   "Everything you have recorded on this step, on one page. Copy it into an email, or read it down the phone.": "Tout ce que vous avez consigné pour cette étape, sur une seule page. Copiez-le dans un courriel ou lisez-le au téléphone.",
   "Everything you have typed and every letter you have photographed, in one file. Save it to iCloud or Files, or email it to yourself. This is the one that survives a lost phone.": "Tout ce que vous avez saisi et chaque lettre que vous avez photographiée, en un seul fichier. Enregistrez-le dans iCloud ou Fichiers, ou envoyez-le-vous par courriel. C'est celui qui survit à la perte d'un téléphone.",
   "Everything you meant to ask the lawyer, the bank or the CRA and forgot on the call. Add to it as it occurs to you.": "Tout ce que vous vouliez demander à l'avocat, à la banque ou à l'ARC et que vous avez oublié pendant l'appel. Ajoutez-y les questions au fur et à mesure qu'elles vous viennent.",
-  "Everything you put in stays on this phone. There is no account, no server, and nothing is sent anywhere. That is why it works with no signal, and why a backup matters.": "Tout ce que vous inscrivez reste sur ce téléphone. Il n'y a ni compte ni serveur, et rien n'est envoyé nulle part. C'est pourquoi l'application fonctionne sans réseau, et pourquoi une copie de sauvegarde compte.",
-  "Evidence": "Preuves",
+    "Evidence": "Preuves",
   "File Form 29 inventory within 3 months after the grant and record the required post-grant notices, including the Royal Gazette estate notice.": "Déposez l'inventaire au moyen du formulaire 29 dans les 3 mois suivant l'autorisation et consignez les avis exigés après l'autorisation, notamment l'avis successoral dans la Royal Gazette.",
   "File Form 4A, the applicable executor or administrator affidavit, proof of death and other required materials with the Court Registry.": "Déposez le formulaire 4A, l'affidavit applicable de l'exécuteur ou de l'administrateur, la preuve de décès et les autres documents requis auprès du greffe de la Cour.",
   "File in the judicial district where the deceased resided at death or where the deceased had property, with the applicable probate tax.": "Déposez la demande dans le district judiciaire où la personne décédée résidait au moment du décès ou où elle possédait des biens, avec le droit d'homologation applicable.",
@@ -1302,6 +1301,7 @@ const FR = {
   "YT": "YT",
   "NU": "NU",
   "211 P.E.I.": "211 Î.-P.-É.",
+  "Everything you put in stays on this device. There is no account, no server, and nothing is sent anywhere. That is why it works with no signal, and why a backup is recommended.": "Tout ce que vous inscrivez reste sur cet appareil. Il n'y a aucun compte, aucun serveur, et rien n'est envoyé nulle part. C'est pourquoi l'application fonctionne sans signal, et pourquoi une sauvegarde est recommandée.",
 
   /* V1P — Start Here refinements from real-user testing: the completion-date
      prompt, "Skip for now", "Doesn't apply", the honest progress line, and

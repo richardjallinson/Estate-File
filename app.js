@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1P";
+const APP_VERSION = "v1Q";
 
 // ---- Day and night.
 //
@@ -1593,7 +1593,7 @@ const INTRO_CARDS = [
   {
     id: "what",
     title: t("Your own record of settling an estate"),
-    body: t("Everything you put in stays on this phone. There is no account, no server, and nothing is sent anywhere. That is why it works with no signal, and why a backup matters.")
+    body: t("Everything you put in stays on this device. There is no account, no server, and nothing is sent anywhere. That is why it works with no signal, and why a backup is recommended.")
   },
   {
     id: "not",
@@ -4513,11 +4513,27 @@ function EstateFile() {
     const pct = applicable ? Math.round((doneCount / applicable) * 100) : 100;
     const nextTask = START_TASKS.find((task) => !recOf(task).done && !recOf(task).status) || null;
     return h("main", { style: { padding: "18px 16px 28px", maxWidth: 760, margin: "0 auto" } },
+      h("section", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 16 } },
+        h("div", { style: { fontFamily: font.display, fontSize: fs(20), fontWeight: 700, color: T.heading } }, t("Before you begin — set up Estate File Canada")),
+        h("div", { style: { marginTop: 5, fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5 } }, t("Take a minute to set up the app before you start the estate checklist.")),
+        h("ol", { style: { margin: "12px 0 12px", paddingLeft: 22, color: T.ink, fontSize: fs(11.5), lineHeight: 1.55 } },
+          h("li", null, h("strong", null, t("Set your language.")), " ", t("Choose English or French.")),
+          h("li", null, h("strong", null, t("Set the estate province or territory.")), " ", t("This controls jurisdiction-specific benefits, probate or succession information and guidance.")),
+          h("li", null, h("strong", null, t("Choose appearance and text size.")), " ", t("Use Follow Device, Day or Night and choose the text size that is easiest to read.")),
+          h("li", null, h("strong", null, t("Add the basic estate information.")), " ", t("Use Estate to record the person, important contacts, assets, debts and other estate details.")),
+          h("li", null, h("strong", null, t("Come back to Start Here.")), " ", t("Work through the checklist from the top down and add dates or notes as you go."))
+        ),
+        h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, style: { width: "100%", minHeight: 44, padding: "12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(12.5), fontWeight: 800, cursor: "pointer" } }, t("Open Settings ⚙︎"))
+      ),
+      !nextTask ? h("section", { style: { background: T.card, border: "2px solid " + T.green, borderRadius: 16, padding: 16, marginBottom: 16 } },
+        h("div", { style: { fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t("Checklist complete")),
+        h("div", { style: { marginTop: 5, fontSize: fs(11.2), color: T.inkSoft, lineHeight: 1.5 } },
+          skippedCount
+            ? t("Every remaining item is skipped. Skipped items are still outstanding — reopen them below when you are ready.")
+            : t("All Start Here items are marked complete. Review your estate record and My Tasks for anything still outstanding."))
+      ) : null,
       h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 16 } },
-        h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: fs(25), color: T.heading } }, t("Start Here")),
-        h("div", { style: { marginTop: 6, fontSize: fs(13), color: T.inkSoft, lineHeight: 1.55 } },
-          t("You do not need to know how to settle an estate before you begin. Work down this list in order, one item at a time. Some steps overlap or may not apply to every estate.")),
-        h("div", { style: { marginTop: 14, display: "flex", alignItems: "center", gap: 12 } },
+        h("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
           h("div", { style: { flex: 1, height: 9, borderRadius: 99, background: T.line, overflow: "hidden" } },
             h("div", { style: { width: pct + "%", height: "100%", background: T.green, borderRadius: 99, transition: "width .2s ease" } })
           ),
@@ -4532,32 +4548,6 @@ function EstateFile() {
           (skippedCount ? t("Skipped for now: ") + skippedCount + t(" — still outstanding") : "")) : null,
         h("div", { style: { marginTop: 10, fontSize: fs(10.5), color: T.inkSoft, lineHeight: 1.45 } },
           t("This checklist is an organizer, not legal, tax or financial advice. Requirements and timing depend on the estate and jurisdiction."))
-      ),
-      nextTask ? h("section", { style: { background: T.card, border: "2px solid " + T.gold, borderRadius: 16, padding: 16, marginBottom: 16 } },
-        h("div", { style: { fontSize: fs(10.5), fontWeight: 900, color: T.amber, textTransform: "uppercase", letterSpacing: ".05em" } }, t("Next thing to do")),
-        h("div", { style: { marginTop: 5, fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t(nextTask.title)),
-        h("div", { style: { marginTop: 5, fontSize: fs(11.2), color: T.inkSoft, lineHeight: 1.5 } }, t("This is the first unfinished item in your Start Here checklist.")),
-        skippedCount ? h("div", { style: { marginTop: 4, fontSize: fs(10.5), color: T.amber, fontWeight: 700 } },
-          t("Plus ") + skippedCount + t(" skipped item(s) waiting further down.")) : null,
-        h("button", { onClick: () => { setStartOpen(nextTask.id); setTimeout(() => { const el = document.getElementById("start-task-" + nextTask.id); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }, style: { marginTop: 10, width: "100%", minHeight: 44, padding: "11px 12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(11.8), fontWeight: 800, cursor: "pointer" } }, t("Open this checklist item"))
-      ) : h("section", { style: { background: T.card, border: "2px solid " + T.green, borderRadius: 16, padding: 16, marginBottom: 16 } },
-        h("div", { style: { fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t("Checklist complete")),
-        h("div", { style: { marginTop: 5, fontSize: fs(11.2), color: T.inkSoft, lineHeight: 1.5 } },
-          skippedCount
-            ? t("Every remaining item is skipped. Skipped items are still outstanding \u2014 reopen them below when you are ready.")
-            : t("All Start Here items are marked complete. Review your estate record and My Tasks for anything still outstanding."))
-      ),
-      h("section", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 16 } },
-        h("div", { style: { fontFamily: font.display, fontSize: fs(20), fontWeight: 700, color: T.heading } }, t("Before you begin — set up Estate File Canada")),
-        h("div", { style: { marginTop: 5, fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5 } }, t("Take a minute to set up the app before you start the estate checklist.")),
-        h("ol", { style: { margin: "12px 0 12px", paddingLeft: 22, color: T.ink, fontSize: fs(11.5), lineHeight: 1.55 } },
-          h("li", null, h("strong", null, t("Set your language.")), " ", t("Choose English or French.")),
-          h("li", null, h("strong", null, t("Set the estate province or territory.")), " ", t("This controls jurisdiction-specific benefits, probate or succession information and guidance.")),
-          h("li", null, h("strong", null, t("Choose appearance and text size.")), " ", t("Use Follow Device, Day or Night and choose the text size that is easiest to read.")),
-          h("li", null, h("strong", null, t("Add the basic estate information.")), " ", t("Use Estate to record the person, important contacts, assets, debts and other estate details.")),
-          h("li", null, h("strong", null, t("Come back to Start Here.")), " ", t("Work through the checklist from the top down and add dates or notes as you go."))
-        ),
-        h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, style: { width: "100%", minHeight: 44, padding: "12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(12.5), fontWeight: 800, cursor: "pointer" } }, t("Open Settings ⚙︎"))
       ),
       // The menu guide lived here as a full card until V1P. It duplicated the
       // guide already inside Help, and it sat between the person and the

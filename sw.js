@@ -20,7 +20,7 @@
 
    APP_VERSION in app.js and CACHE_NAME here must always match. A test
    asserts it, because remembering to bump it by hand is exactly what failed. */
-const CACHE_NAME = "estate-file-v1P";
+const CACHE_NAME = "estate-file-v1Q";
 const CORE_ASSETS = [
   "/",
   "/index.html",
