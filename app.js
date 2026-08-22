@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1J";
+const APP_VERSION = "v1K";
 
 // ---- Day and night.
 //
@@ -1334,6 +1334,53 @@ function spanText(fromISO, toISO) {
   return parts.join(", ");
 }
 
+// ---- Start Here guided checklist.
+//
+// This is deliberately an ordered orientation layer, not legal advice and not
+// a deadline calculator. A person opening the app after a death should not have
+// to understand the tab structure before they can begin. Each item can be
+// checked, dated and annotated; the record is saved with the rest of the estate.
+const START_GROUPS = [
+  { id: "immediate", title: "Start here — first things first", blurb: "Begin with the facts and documents that unlock almost everything else." },
+  { id: "days", title: "Next — first days", blurb: "Secure the estate and make the first important notifications." },
+  { id: "weeks", title: "Then — first weeks", blurb: "Build the estate picture and deal with benefits, accounts and authority." },
+  { id: "admin", title: "Administration", blurb: "Keep records as you work through tax, property, debts and distributions." },
+  { id: "finish", title: "Before you finish", blurb: "Final tax and distribution steps come after the estate is ready for them." }
+];
+const START_TASKS = [
+  { id: "death-proof", group: "immediate", title: "Get proof of death / death certificates", detail: "Ask the funeral home what proof it provides and find out whether certified death certificates will be needed for the institutions you must contact." },
+  { id: "will", group: "immediate", title: "Find the most recent will and codicils", detail: "Locate the original will, any codicils and the lawyer or notary information. Do not assume an older copy is the final will." },
+  { id: "representative", group: "immediate", title: "Confirm who is responsible for the estate", detail: "Identify the executor, administrator or, in Quebec, liquidator. Court or other formal authority may be required depending on the estate and jurisdiction." },
+  { id: "funeral", group: "immediate", title: "Record funeral, burial or cremation arrangements", detail: "Keep contracts, receipts and information about any prepaid plan or insurance." },
+
+  { id: "secure", group: "days", title: "Secure the home, property, vehicles and valuables", detail: "Protect property, collect keys, check insurance requirements and make sure essential property is not left unattended or at risk." },
+  { id: "dependants", group: "days", title: "Deal with immediate needs of dependants and pets", detail: "Record any urgent care, housing or practical arrangements that need attention." },
+  { id: "mail", group: "days", title: "Secure mail and important records", detail: "Gather statements, tax records, bills, identification and other estate paperwork. Consider how mail will be handled while the estate is being settled." },
+  { id: "service-canada", group: "days", title: "Notify Service Canada and stop CPP / OAS payments when applicable", detail: "Report the death as required and record the date and reference information. Quebec Pension Plan matters are handled through Retraite Québec." },
+  { id: "cra", group: "days", title: "Notify the Canada Revenue Agency", detail: "Report the death to the CRA and keep a record of what was sent or discussed." },
+  { id: "province", group: "days", title: "Notify provincial or territorial programs that apply", detail: "Health coverage, driver's licence, benefits and other programs vary by province or territory. Use the estate's jurisdiction in Settings to guide your research." },
+
+  { id: "inventory", group: "weeks", title: "Start a complete estate inventory", detail: "List bank accounts, investments, real estate, vehicles, personal property, business interests, debts and other assets or liabilities." },
+  { id: "banks", group: "weeks", title: "Contact banks and financial institutions", detail: "Tell each institution about the death, ask what documents it requires and record balances or values at the date of death where needed." },
+  { id: "insurance", group: "weeks", title: "Find and contact life insurance companies", detail: "Locate policies and beneficiary information and ask the insurer about its claim process." },
+  { id: "pensions", group: "weeks", title: "Contact employers, pensions and workplace benefit plans", detail: "Ask about pension survivor benefits, final pay, group life insurance and any other amounts or benefits that may be payable." },
+  { id: "benefits", group: "weeks", title: "Check survivor and death benefits", detail: "Review the Benefits section for programs that may apply. The responsible government or plan administrator decides eligibility." },
+  { id: "utilities", group: "weeks", title: "Review utilities, subscriptions and recurring payments", detail: "Identify services that should continue temporarily and those that can be cancelled. Avoid cancelling something needed to protect estate property." },
+  { id: "digital", group: "weeks", title: "Identify digital accounts and online services", detail: "Record important email, cloud, social, subscription and other digital accounts and follow each provider's process for a deceased account holder." },
+  { id: "authority", group: "weeks", title: "Determine whether probate, a grant or will verification is required", detail: "Requirements vary across Canada and by the assets involved. Use the Probate / Succession section for process information and get legal advice where the answer is unclear." },
+
+  { id: "estate-account", group: "admin", title: "Open or use an estate account if required", detail: "Keep estate money separate and maintain a clear record of deposits, payments and reimbursements." },
+  { id: "debts", group: "admin", title: "Identify debts, bills and legitimate estate expenses", detail: "Keep statements and receipts. Do not assume every debt should be paid immediately or personally by the executor." },
+  { id: "tax-returns", group: "admin", title: "Prepare the deceased person's required tax returns", detail: "Determine which CRA and, where applicable, Revenu Québec returns are required and keep the supporting records." },
+  { id: "property", group: "admin", title: "Manage, transfer or sell estate property as authorized", detail: "Keep insurance, valuation, sale and transfer records. Follow the will and applicable law before disposing of estate property." },
+  { id: "beneficiaries", group: "admin", title: "Keep beneficiaries or heirs appropriately informed", detail: "Record important communications and documents provided while the estate is being administered." },
+
+  { id: "estate-tax", group: "finish", title: "Complete estate / trust tax work that applies", detail: "An estate can have tax obligations after death. An accountant or the responsible tax authority can confirm what filings are required." },
+  { id: "clearance", group: "finish", title: "Consider tax clearance before final distribution", detail: "CRA clearance, and a separate Revenu Québec authorization process in Quebec, can matter before final distribution. Confirm the requirements for this estate." },
+  { id: "distribution", group: "finish", title: "Make final distributions only when the estate is ready", detail: "Follow the will or applicable succession law, resolve required debts and taxes, and keep a record of each distribution." },
+  { id: "accounts", group: "finish", title: "Prepare final estate accounts and keep the file", detail: "Reconcile money in and out, retain receipts and statements, document distributions and keep the estate record for the period appropriate to the circumstances." }
+];
+
 // ---- Storage. Text in localStorage, document images in IndexedDB. The same
 // split as the recipe app, for the same reason: localStorage is about 5MB and
 // a handful of photographed letters would fill it and take the claims with it. --
@@ -1416,8 +1463,8 @@ const INTRO_CARDS = [
   },
   {
     id: "start",
-    title: t("Start with one step"),
-    body: t("Add the first thing you have to do and the date. Everything else can wait: the letters, the calls, the inventory, the questions. It is built to be filled in slowly.")
+    title: t("Start Here shows you what comes next"),
+    body: t("Open Start Here for an ordered checklist of the estate work. Tap a box when something is done, add the date, and keep a note. You do not have to remember the whole process at once.")
   }
 ];
 function loadSeenIntro() {
@@ -1612,6 +1659,8 @@ function EstateFile() {
   const [loaded, setLoaded] = useState(false);
   const [province, setProvince] = useState("ON");
   const [claims, setClaims] = useState([]);
+  const [startChecklist, setStartChecklist] = useState({});
+  const [startOpen, setStartOpen] = useState(null);
   const [reminders, setReminders] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [redress, setRedress] = useState([]);
@@ -1724,7 +1773,7 @@ function EstateFile() {
     } catch {}
   }, [lang]);
 
-  const [tab, setTab] = useState("claims");
+  const [tab, setTab] = useState("start");
   const [openClaim, setOpenClaim] = useState(null);
   const [toast, setToast] = useState("");
 
@@ -1797,6 +1846,7 @@ function EstateFile() {
     if (data) {
       if (data.province) setProvince(normaliseProvinceId(data.province));
       if (Array.isArray(data.claims)) setClaims(data.claims);
+      if (data.startChecklist && typeof data.startChecklist === "object") setStartChecklist(data.startChecklist);
       if (Array.isArray(data.reminders)) setReminders(data.reminders);
       if (Array.isArray(data.contacts)) setContacts(data.contacts);
       if (Array.isArray(data.redress)) setRedress(data.redress);
@@ -1810,8 +1860,8 @@ function EstateFile() {
 
   useEffect(() => {
     if (!loaded) return;
-    saveState({ province, claims, reminders, contacts, redress, evidence, statements, conditions });
-  }, [province, claims, reminders, contacts, redress, evidence, statements, conditions, loaded]);
+    saveState({ province, claims, startChecklist, reminders, contacts, redress, evidence, statements, conditions });
+  }, [province, claims, startChecklist, reminders, contacts, redress, evidence, statements, conditions, loaded]);
 
   const claimById = (id) => claims.find((c) => c.id === id) || null;
 
@@ -2450,7 +2500,7 @@ function EstateFile() {
   };
 
   const openBackup = () => {
-    setBackupText(JSON.stringify({ province, claims, reminders, contacts, redress, evidence, statements, conditions }));
+    setBackupText(JSON.stringify({ province, claims, startChecklist, reminders, contacts, redress, evidence, statements, conditions }));
     setRestoreText("");
     setBackupOpen(true);
   };
@@ -2478,6 +2528,7 @@ function EstateFile() {
   const applyRecord = (data) => {
     if (data.province) setProvince(normaliseProvinceId(data.province));
     if (Array.isArray(data.claims)) setClaims(data.claims);
+    if (data.startChecklist && typeof data.startChecklist === "object") setStartChecklist(data.startChecklist);
     if (Array.isArray(data.reminders)) setReminders(data.reminders);
     if (Array.isArray(data.contacts)) setContacts(data.contacts);
     if (Array.isArray(data.redress)) setRedress(data.redress);
@@ -2493,7 +2544,7 @@ function EstateFile() {
         format: "estate-file-backup",
         version: 1,
         savedAt: todayISO(),
-        record: { province, claims, reminders, contacts, redress, evidence, statements, conditions },
+        record: { province, claims, startChecklist, reminders, contacts, redress, evidence, statements, conditions },
         documents: docs
       };
       const json = JSON.stringify(payload);
@@ -4229,6 +4280,77 @@ function EstateFile() {
     }, t("Replace everything with this backup"))
   ]);
 
+
+  // ---------- Start Here ----------
+  const updateStartTask = (id, patch) => {
+    setStartChecklist((cur) => ({ ...cur, [id]: { ...(cur[id] || {}), ...patch } }));
+  };
+  const toggleStartTask = (id) => {
+    const cur = startChecklist[id] || {};
+    const done = !cur.done;
+    updateStartTask(id, { done, date: done && !cur.date ? todayISO() : (cur.date || "") });
+  };
+  const startScreen = () => {
+    const doneCount = START_TASKS.filter((task) => (startChecklist[task.id] || {}).done).length;
+    const pct = Math.round((doneCount / START_TASKS.length) * 100);
+    return h("main", { style: { padding: "18px 16px 28px", maxWidth: 760, margin: "0 auto" } },
+      h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 16 } },
+        h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: fs(25), color: T.heading } }, t("Start Here")),
+        h("div", { style: { marginTop: 6, fontSize: fs(13), color: T.inkSoft, lineHeight: 1.55 } },
+          t("You do not need to know how to settle an estate before you begin. Work down this list in order, one item at a time. Some steps overlap or may not apply to every estate.")),
+        h("div", { style: { marginTop: 14, display: "flex", alignItems: "center", gap: 12 } },
+          h("div", { style: { flex: 1, height: 9, borderRadius: 99, background: T.line, overflow: "hidden" } },
+            h("div", { style: { width: pct + "%", height: "100%", background: T.green, borderRadius: 99, transition: "width .2s ease" } })
+          ),
+          h("div", { style: { fontSize: fs(12), fontWeight: 800, color: T.ink, whiteSpace: "nowrap" } }, doneCount + " / " + START_TASKS.length)
+        ),
+        h("div", { style: { marginTop: 10, fontSize: fs(10.5), color: T.inkSoft, lineHeight: 1.45 } },
+          t("This checklist is an organizer, not legal, tax or financial advice. Requirements and timing depend on the estate and jurisdiction."))
+      ),
+      START_GROUPS.map((group) => {
+        const tasks = START_TASKS.filter((task) => task.group === group.id);
+        return h("section", { key: group.id, style: { marginBottom: 22 } },
+          h("div", { style: { margin: "0 2px 10px" } },
+            h("div", { style: { fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t(group.title)),
+            h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginTop: 3, lineHeight: 1.4 } }, t(group.blurb))
+          ),
+          tasks.map((task) => {
+            const rec = startChecklist[task.id] || {};
+            const open = startOpen === task.id;
+            return h("div", { key: task.id, style: { background: T.card, border: "1px solid " + (rec.done ? T.green : T.line), borderRadius: 13, marginBottom: 9, overflow: "hidden" } },
+              h("div", { style: { display: "flex", alignItems: "stretch" } },
+                h("button", {
+                  onClick: () => toggleStartTask(task.id),
+                  "aria-label": t(rec.done ? "Mark incomplete: " : "Mark complete: ") + t(task.title),
+                  "aria-pressed": rec.done ? "true" : "false",
+                  style: { width: 58, flex: "0 0 58px", border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }
+                }, h("span", { "aria-hidden": "true", style: { width: 27, height: 27, borderRadius: 7, border: "2px solid " + (rec.done ? T.green : T.inkSoft), background: rec.done ? T.green : "transparent", color: rec.done ? T.onAccent : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: fs(18), lineHeight: 1 } }, "✓")),
+                h("button", {
+                  onClick: () => setStartOpen(open ? null : task.id),
+                  "aria-expanded": open ? "true" : "false",
+                  style: { flex: 1, minWidth: 0, textAlign: "left", border: "none", background: "transparent", padding: "13px 12px 13px 0", cursor: "pointer", color: T.ink }
+                },
+                  h("div", { style: { fontSize: fs(13.5), fontWeight: 750, lineHeight: 1.35, textDecoration: rec.done ? "line-through" : "none", opacity: rec.done ? .72 : 1 } }, t(task.title)),
+                  h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 4 } },
+                    rec.date ? t("Date: ") + rec.date : t("Tap for date, notes and details"))
+                )
+              ),
+              open ? h("div", { style: { borderTop: "1px solid " + T.line, padding: "13px 14px 15px 58px" } },
+                h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5, marginBottom: 12 } }, t(task.detail)),
+                h(Field, { label: t("Date completed / action date") },
+                  h("input", { type: "date", value: rec.date || "", onInput: (e) => updateStartTask(task.id, { date: e.currentTarget.value }), style: { ...inputStyle(), width: "100%" } })
+                ),
+                h(Field, { label: t("Notes") },
+                  h("textarea", { value: rec.notes || "", rows: 3, placeholder: t("Add a note, reference number, person you spoke with, or what still needs to happen"), onInput: (e) => updateStartTask(task.id, { notes: e.currentTarget.value }), style: { ...inputStyle(), width: "100%", resize: "vertical", lineHeight: 1.45 } })
+                )
+              ) : null
+            );
+          })
+        );
+      })
+    );
+  };
+
   // ---------- shell ----------
 
   // Six tabs at full length ran off the right edge on a real phone, clipping
@@ -4237,6 +4359,8 @@ function EstateFile() {
   // Shorter labels plus a tighter gap fit all six, and the fade on the right
   // edge below makes it obvious when there is more to reach.
   const TABS = [
+    { id: "start", label: t("Start Here"),
+      about: "An ordered checklist for getting started and keeping track of what has been completed." },
     { id: "claims", label: t("Steps"),
       about: "Every notification and filing: where each one stands, your notes, documents, and every call logged." },
     { id: "body", label: t("Estate"),
@@ -4455,6 +4579,7 @@ function EstateFile() {
       )
     ),
 
+    tab === "start" ? startScreen() : null,
     tab === "claims" ? (openClaim ? claimDetail() : claimsScreen()) : null,
     tab === "body" ? bodyScreen() : null,
     tab === "reminders" ? remindersScreen() : null,
