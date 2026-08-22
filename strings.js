@@ -1,4 +1,4 @@
-/* Estate File v1M — English/French language layer.
+/* Estate File v1N — English/French language layer.
 
    English source text stays in app.js. t("...") returns the French version
    when the interface is French and the English source otherwise. A missing
@@ -1301,7 +1301,33 @@ const FR = {
   "QC": "QC",
   "YT": "YT",
   "NU": "NU",
-  "211 P.E.I.": "211 Î.-P.-É."
+  "211 P.E.I.": "211 Î.-P.-É.",
+
+  /* V1N — Start Here refinements from real-user testing: the completion-date
+     prompt, "Skip for now", "Doesn't apply", the honest progress line, and
+     the retitled Service Canada task with its repayment caution. */
+  "Plus ": "Plus ",
+  " skipped item(s) waiting further down.": " élément(s) mis de côté plus bas dans la liste.",
+  "Every remaining item is skipped. Skipped items are still outstanding — reopen them below when you are ready.": "Tous les éléments restants sont mis de côté. Ils demeurent à faire — reprenez-les plus bas quand vous serez prêt.",
+  "Doesn't apply to this estate — your call, tap the box to undo": "Ne s'applique pas à cette succession — votre décision; touchez la case pour annuler",
+  "Skipped for now — still on your list": "Mis de côté pour l'instant — toujours sur votre liste",
+  "Completed: ": "Terminé le : ",
+  "When was this completed?": "Quand cela a-t-il été fait?",
+  "Today": "Aujourd'hui",
+  "Choose the completion date": "Choisir la date d'achèvement",
+  "Today is already recorded — change it only if this happened on another day.": "La date d'aujourd'hui est déjà inscrite — changez-la seulement si cela s'est passé un autre jour.",
+  "If this item is not for this estate": "Si cet élément ne concerne pas cette succession",
+  "Skipped for now: ": "Mis de côté pour l'instant : ",
+  " — still outstanding": " — toujours à faire",
+  "Marked as not applying: ": "Marqués comme non applicables : ",
+  "Skipped — tap to resume": "Mis de côté — touchez pour reprendre",
+  "Skip for now": "Mettre de côté pour l'instant",
+  "Marked as not applying — tap to undo": "Marqué comme non applicable — touchez pour annuler",
+  "Doesn't apply to this estate": "Ne s'applique pas à cette succession",
+  "Skipped items stay on your list and count as outstanding. Marking an item as not applying removes it from your total — that is your own decision, the app never makes it for you, and one tap undoes it.": "Les éléments mis de côté restent sur votre liste et comptent comme étant à faire. Marquer un élément comme non applicable le retire de votre total — c'est votre propre décision, l'application ne la prend jamais pour vous, et un seul toucher l'annule.",
+  "Report the death to Service Canada (CPP / OAS)": "Déclarer le décès à Service Canada (RPC / SV)",
+  "Find out whether probate, a grant or will verification is needed": "Vérifier si une homologation, une autorisation ou une vérification de testament est nécessaire",
+  "Report the death and record the date and reference information. CPP and OAS are payable for the month of death; payments received for later months generally must be repaid, so do not assume deposits arriving after the death belong to the estate. Quebec Pension Plan matters are handled through Retraite Québec.": "Déclarez le décès et notez la date et les renseignements de référence. Le RPC et la SV sont payables pour le mois du décès; les paiements reçus pour les mois suivants doivent généralement être remboursés — ne présumez donc pas que les dépôts arrivant après le décès appartiennent à la succession. Les questions relatives au Régime de rentes du Québec relèvent de Retraite Québec.",
 };
 
 const FR_MISSES = new Set();

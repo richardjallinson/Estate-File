@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1M";
+const APP_VERSION = "v1N";
 
 // ---- Day and night.
 //
@@ -1500,7 +1500,7 @@ const START_TASKS = [
   { id: "secure", group: "days", title: "Secure the home, property, vehicles and valuables", detail: "Protect property, collect keys, check insurance requirements and make sure essential property is not left unattended or at risk." },
   { id: "dependants", group: "days", title: "Deal with immediate needs of dependants and pets", detail: "Record any urgent care, housing or practical arrangements that need attention." },
   { id: "mail", group: "days", title: "Secure mail and important records", detail: "Gather statements, tax records, bills, identification and other estate paperwork. Consider how mail will be handled while the estate is being settled." },
-  { id: "service-canada", group: "days", title: "Notify Service Canada and stop CPP / OAS payments when applicable", detail: "Report the death as required and record the date and reference information. Quebec Pension Plan matters are handled through Retraite Québec.", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/cpp-death-benefit.html", urlLabel: "Open official Canada.ca information" },
+  { id: "service-canada", group: "days", title: "Report the death to Service Canada (CPP / OAS)", detail: "Report the death and record the date and reference information. CPP and OAS are payable for the month of death; payments received for later months generally must be repaid, so do not assume deposits arriving after the death belong to the estate. Quebec Pension Plan matters are handled through Retraite Québec.", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/cpp-death-benefit.html", urlLabel: "Open official Canada.ca information" },
   { id: "cra", group: "days", title: "Notify the Canada Revenue Agency", detail: "Report the death to the CRA and keep a record of what was sent or discussed.", url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/life-events/what-when-someone-died.html", urlLabel: "Open official CRA information" },
   { id: "province", group: "days", title: "Notify provincial or territorial programs that apply", detail: "Health coverage, driver's licence, benefits and other programs vary by province or territory. Use the estate's jurisdiction in Settings to guide your research." },
 
@@ -1511,7 +1511,7 @@ const START_TASKS = [
   { id: "benefits", group: "weeks", title: "Check survivor and death benefits", detail: "Review the Benefits section for programs that may apply. The responsible government or plan administrator decides eligibility.", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/cpp-death-benefit.html", urlLabel: "Open official Canada.ca benefits information" },
   { id: "utilities", group: "weeks", title: "Review utilities, subscriptions and recurring payments", detail: "Identify services that should continue temporarily and those that can be cancelled. Avoid cancelling something needed to protect estate property." },
   { id: "digital", group: "weeks", title: "Identify digital accounts and online services", detail: "Record important email, cloud, social, subscription and other digital accounts and follow each provider's process for a deceased account holder." },
-  { id: "authority", group: "weeks", title: "Determine whether probate, a grant or will verification is required", detail: "Requirements vary across Canada and by the assets involved. Use the Probate / Succession section for process information and get legal advice where the answer is unclear." },
+  { id: "authority", group: "weeks", title: "Find out whether probate, a grant or will verification is needed", detail: "Requirements vary across Canada and by the assets involved. Use the Probate / Succession section for process information and get legal advice where the answer is unclear." },
 
   { id: "estate-account", group: "admin", title: "Open or use an estate account if required", detail: "Keep estate money separate and maintain a clear record of deposits, payments and reimbursements." },
   { id: "debts", group: "admin", title: "Identify debts, bills and legitimate estate expenses", detail: "Keep statements and receipts. Do not assume every debt should be paid immediately or personally by the executor." },
@@ -2737,7 +2737,11 @@ function EstateFile() {
     docAllFull().then((docs) => {
       const payload = {
         format: "estate-file-backup",
-        version: 1,
+        // Version 2: Start Here items gained a per-task status field
+        // ("" | "na" | "skipped"). applyRecord() reads by shape, not by
+        // version, so v1 backups restore into this build cleanly and v2
+        // backups restore into V1M with statuses simply appearing unset.
+        version: 2,
         savedAt: todayISO(),
         record: { province, claims, startChecklist, reminders, contacts, redress, evidence, statements, conditions },
         documents: docs
@@ -3780,7 +3784,7 @@ function EstateFile() {
           style: {
             padding: "13px", borderRadius: 10, border: "none", fontFamily: font.body, fontSize: fs(13), fontWeight: 800,
             cursor: stmtText.trim() ? "pointer" : "default",
-            background: stmtText.trim() ? T.primary : "#B9BDCB", color: "#fff"
+            background: stmtText.trim() ? T.primary : T.disabled, color: stmtText.trim() ? "#fff" : T.onDisabled
           }
         }, t("Copy"))),
 
@@ -3959,7 +3963,7 @@ function EstateFile() {
         style: {
           padding: "13px", borderRadius: 10, border: "none", fontFamily: font.body, fontSize: fs(13), fontWeight: 800,
           cursor: bName.trim() ? "pointer" : "default",
-          background: bName.trim() ? T.primary : "#B9BDCB", color: "#fff"
+          background: bName.trim() ? T.primary : T.disabled, color: bName.trim() ? "#fff" : T.onDisabled
         }
       }, t("Save"))),
     condEditingId ? h("button", {
@@ -4311,7 +4315,7 @@ function EstateFile() {
         style: {
           padding: "13px", borderRadius: 10, border: "none", fontFamily: font.body, fontSize: fs(13), fontWeight: 800,
           cursor: cCondition.trim() ? "pointer" : "default",
-          background: cCondition.trim() ? T.primary : "#B9BDCB", color: "#fff"
+          background: cCondition.trim() ? T.primary : T.disabled, color: cCondition.trim() ? "#fff" : T.onDisabled
         }
       }, editingId ? t("Save changes") : t("Add step"))),
     editingId ? h("button", {
@@ -4335,7 +4339,7 @@ function EstateFile() {
       h("button", { onClick: () => setRemOpen(false), style: { padding: "13px", borderRadius: 10, border: "1px solid " + T.line, background: T.btn2, fontFamily: font.body, fontSize: fs(13), fontWeight: 700, cursor: "pointer" } }, t("Cancel")),
       h("button", {
         onClick: addReminder, disabled: !remLabel.trim(),
-        style: { padding: "13px", borderRadius: 10, border: "none", fontFamily: font.body, fontSize: fs(13), fontWeight: 800, cursor: remLabel.trim() ? "pointer" : "default", background: remLabel.trim() ? T.primary : "#B9BDCB", color: "#fff" }
+        style: { padding: "13px", borderRadius: 10, border: "none", fontFamily: font.body, fontSize: fs(13), fontWeight: 800, cursor: remLabel.trim() ? "pointer" : "default", background: remLabel.trim() ? T.primary : T.disabled, color: remLabel.trim() ? "#fff" : T.onDisabled }
       }, t("Add reminder")))
   ]);
 
@@ -4357,7 +4361,7 @@ function EstateFile() {
       h("button", { onClick: () => setLogOpen(false), style: { padding: "13px", borderRadius: 10, border: "1px solid " + T.line, background: T.btn2, fontFamily: font.body, fontSize: fs(13), fontWeight: 700, cursor: "pointer" } }, t("Cancel")),
       h("button", {
         onClick: addContact, disabled: !logWho.trim(),
-        style: { padding: "13px", borderRadius: 10, border: "none", fontFamily: font.body, fontSize: fs(13), fontWeight: 800, cursor: logWho.trim() ? "pointer" : "default", background: logWho.trim() ? T.primary : "#B9BDCB", color: "#fff" }
+        style: { padding: "13px", borderRadius: 10, border: "none", fontFamily: font.body, fontSize: fs(13), fontWeight: 800, cursor: logWho.trim() ? "pointer" : "default", background: logWho.trim() ? T.primary : T.disabled, color: logWho.trim() ? "#fff" : T.onDisabled }
       }, t("Save entry")))
   ]);
 
@@ -4417,7 +4421,7 @@ function EstateFile() {
         disabled: fullBackupBusy,
         style: {
           width: "100%", marginTop: 10, padding: "13px", borderRadius: 10, border: "none",
-          background: fullBackupBusy ? "#B9BDCB" : T.primary, color: "#fff",
+          background: fullBackupBusy ? T.disabled : T.primary, color: fullBackupBusy ? T.onDisabled : "#fff",
           fontFamily: font.body, fontSize: fs(13), fontWeight: 800,
           cursor: fullBackupBusy ? "default" : "pointer"
         }
@@ -4468,15 +4472,46 @@ function EstateFile() {
   const updateStartTask = (id, patch) => {
     setStartChecklist((cur) => ({ ...cur, [id]: { ...(cur[id] || {}), ...patch } }));
   };
+  // Bonnie's interaction, kept exactly: tap the box, the checkmark fills.
+  // What V1N adds is the question she asked for — "when was this completed?" —
+  // as an inline prompt rather than a silent assumption of today. The date is
+  // still set to today immediately, so ignoring the prompt is safe; answering
+  // it corrects the record for work done last week.
+  const [datePrompt, setDatePrompt] = useState(null);
   const toggleStartTask = (id) => {
     const cur = startChecklist[id] || {};
+    if (cur.status) {
+      // Tapping the box on an item marked "doesn't apply" or "skipped" means
+      // "actually, I did this" — clear the status and complete it.
+      updateStartTask(id, { status: "", done: true, date: cur.date || todayISO() });
+      setDatePrompt(id);
+      return;
+    }
     const done = !cur.done;
     updateStartTask(id, { done, date: done && !cur.date ? todayISO() : (cur.date || "") });
+    setDatePrompt(done ? id : null);
+  };
+  // "Doesn't apply" and "Skip for now" are the person's own assertions — the
+  // app never suggests them, never pre-sets them, and each is one tap to undo.
+  // They are deliberately in the expanded panel, not on the row: the row stays
+  // a plain checkbox, which is the interaction that tested well.
+  const setTaskStatus = (id, status) => {
+    const cur = startChecklist[id] || {};
+    updateStartTask(id, { status: cur.status === status ? "" : status, done: false });
+    setDatePrompt(null);
   };
   const startScreen = () => {
-    const doneCount = START_TASKS.filter((task) => (startChecklist[task.id] || {}).done).length;
-    const pct = Math.round((doneCount / START_TASKS.length) * 100);
-    const nextTask = START_TASKS.find((task) => !(startChecklist[task.id] || {}).done) || null;
+    const recOf = (task) => startChecklist[task.id] || {};
+    // "Doesn't apply" removes an item from the denominator — that is the whole
+    // point, since otherwise an estate with no life insurance can never reach
+    // the end. "Skipped" does NOT: a skipped item is still outstanding work,
+    // and the count must keep saying so or skip becomes silent abandonment.
+    const naCount = START_TASKS.filter((task) => recOf(task).status === "na").length;
+    const skippedCount = START_TASKS.filter((task) => recOf(task).status === "skipped").length;
+    const applicable = START_TASKS.length - naCount;
+    const doneCount = START_TASKS.filter((task) => recOf(task).done && recOf(task).status !== "na").length;
+    const pct = applicable ? Math.round((doneCount / applicable) * 100) : 100;
+    const nextTask = START_TASKS.find((task) => !recOf(task).done && !recOf(task).status) || null;
     return h("main", { style: { padding: "18px 16px 28px", maxWidth: 760, margin: "0 auto" } },
       h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 16 } },
         h("div", { style: { fontFamily: font.display, fontWeight: 700, fontSize: fs(25), color: T.heading } }, t("Start Here")),
@@ -4486,8 +4521,15 @@ function EstateFile() {
           h("div", { style: { flex: 1, height: 9, borderRadius: 99, background: T.line, overflow: "hidden" } },
             h("div", { style: { width: pct + "%", height: "100%", background: T.green, borderRadius: 99, transition: "width .2s ease" } })
           ),
-          h("div", { style: { fontSize: fs(12), fontWeight: 800, color: T.ink, whiteSpace: "nowrap" } }, doneCount + " / " + START_TASKS.length)
+          h("div", { style: { fontSize: fs(12), fontWeight: 800, color: T.ink, whiteSpace: "nowrap" } }, doneCount + " / " + applicable)
         ),
+        // The count must disclose why the denominator is what it is. "1 / 26"
+        // with a silent missing item would look like a bug; with this line it
+        // reads as the person's own decision, restated.
+        (naCount || skippedCount) ? h("div", { style: { marginTop: 7, fontSize: fs(10.5), color: T.inkSoft, fontWeight: 700 } },
+          (naCount ? t("Marked as not applying: ") + naCount : "") +
+          (naCount && skippedCount ? "  ·  " : "") +
+          (skippedCount ? t("Skipped for now: ") + skippedCount + t(" — still outstanding") : "")) : null,
         h("div", { style: { marginTop: 10, fontSize: fs(10.5), color: T.inkSoft, lineHeight: 1.45 } },
           t("This checklist is an organizer, not legal, tax or financial advice. Requirements and timing depend on the estate and jurisdiction."))
       ),
@@ -4495,10 +4537,15 @@ function EstateFile() {
         h("div", { style: { fontSize: fs(10.5), fontWeight: 900, color: T.amber, textTransform: "uppercase", letterSpacing: ".05em" } }, t("Next thing to do")),
         h("div", { style: { marginTop: 5, fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t(nextTask.title)),
         h("div", { style: { marginTop: 5, fontSize: fs(11.2), color: T.inkSoft, lineHeight: 1.5 } }, t("This is the first unfinished item in your Start Here checklist.")),
+        skippedCount ? h("div", { style: { marginTop: 4, fontSize: fs(10.5), color: T.amber, fontWeight: 700 } },
+          t("Plus ") + skippedCount + t(" skipped item(s) waiting further down.")) : null,
         h("button", { onClick: () => { setStartOpen(nextTask.id); setTimeout(() => { const el = document.getElementById("start-task-" + nextTask.id); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }, style: { marginTop: 10, width: "100%", minHeight: 44, padding: "11px 12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(11.8), fontWeight: 800, cursor: "pointer" } }, t("Open this checklist item"))
       ) : h("section", { style: { background: T.card, border: "2px solid " + T.green, borderRadius: 16, padding: 16, marginBottom: 16 } },
         h("div", { style: { fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t("Checklist complete")),
-        h("div", { style: { marginTop: 5, fontSize: fs(11.2), color: T.inkSoft, lineHeight: 1.5 } }, t("All Start Here items are marked complete. Review your estate record and My Tasks for anything still outstanding."))
+        h("div", { style: { marginTop: 5, fontSize: fs(11.2), color: T.inkSoft, lineHeight: 1.5 } },
+          skippedCount
+            ? t("Every remaining item is skipped. Skipped items are still outstanding \u2014 reopen them below when you are ready.")
+            : t("All Start Here items are marked complete. Review your estate record and My Tasks for anything still outstanding."))
       ),
       h("section", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 16 } },
         h("div", { style: { fontFamily: font.display, fontSize: fs(20), fontWeight: 700, color: T.heading } }, t("Before you begin — set up Estate File Canada")),
@@ -4512,33 +4559,22 @@ function EstateFile() {
         ),
         h("button", { onClick: () => { setTab("settings"); setOpenClaim(null); }, style: { width: "100%", minHeight: 44, padding: "12px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(12.5), fontWeight: 800, cursor: "pointer" } }, t("Open Settings ⚙︎"))
       ),
-      h("section", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 16, padding: 16, marginBottom: 20 } },
-        h("div", { style: { fontFamily: font.display, fontSize: fs(20), fontWeight: 700, color: T.heading } }, t("How to use Estate File Canada")),
-        h("div", { style: { marginTop: 6, fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5 } }, t("Each menu has a different job. You can move between them at any time.")),
-        [
-          ["Start Here", "Your guided checklist. Work through the estate tasks in order, check off completed items, and add dates and notes."],
-          ["My Tasks", "Your personal task tracker for jobs and follow-ups that are specific to this estate and are not already covered by Start Here. Add a task, record its status, notes, documents and calls."],
-          ["Estate", "The main estate record. Keep the deceased person's information, contacts, assets, property, accounts, debts and other estate details here."],
-          ["Dates", "Keep important estate dates, appointments and deadlines that you enter in one place."],
-          ["Docs", "Keep track of important estate documents and store photographs or PDFs on this device."],
-          ["Benefits", "Review federal and jurisdiction-specific death and survivor benefits that may apply, and links to the responsible government authorities."],
-          [province === "QC" ? "Succession" : "Probate", province === "QC" ? "Quebec succession and will-verification information, process tracking and related guidance for the selected jurisdiction." : "Probate information, process tracking and the applicable fee calculator for the selected province or territory."],
-          ["Help", "Open plain-language explanations, useful information and phone numbers."],
-          ["Settings", "Change language, province or territory, appearance, text size, backup and other app preferences."]
-        ].map((row) => h("div", { key: row[0], style: { padding: "10px 0", borderTop: "1px solid " + T.line } },
-          h("div", { style: { fontSize: fs(12), fontWeight: 800, color: T.ink } }, t(row[0])),
-          h("div", { style: { marginTop: 2, fontSize: fs(10.8), color: T.inkSoft, lineHeight: 1.45 } }, t(row[1]))
-        ))
-      ),
+      // The menu guide lived here as a full card until V1N. It duplicated the
+      // guide already inside Help, and it sat between the person and the
+      // checklist that is this screen's whole purpose. Charlie's read, after
+      // real-user testing: the landing screen should feel like "your list",
+      // not an instruction manual. Help still explains every menu.
       h("div", { style: { margin: "0 2px 16px" } },
         h("div", { style: { fontFamily: font.display, fontSize: fs(22), fontWeight: 700, color: T.heading } }, t("Your estate checklist — first things first")),
         h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginTop: 3, lineHeight: 1.4 } }, t("Once the app is set up, begin here and work down the list one item at a time."))
       ),
-      START_GROUPS.map((group) => {
+      START_GROUPS.map((group, groupIndex) => {
         const tasks = START_TASKS.filter((task) => task.group === group.id);
         return h("section", { key: group.id, style: { marginBottom: 22 } },
           h("div", { style: { margin: "0 2px 10px" } },
-            h("div", { style: { fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t(group.title)),
+            h("div", { style: { display: "flex", alignItems: "center", gap: 9 } },
+              h("span", { "aria-hidden": "true", style: { flex: "0 0 auto", width: 26, height: 26, borderRadius: 999, background: T.primary, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: font.body, fontWeight: 800, fontSize: fs(12.5) } }, String(groupIndex + 1)),
+              h("div", { style: { fontFamily: font.display, fontSize: fs(19), fontWeight: 700, color: T.heading } }, t(group.title))),
             h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, marginTop: 3, lineHeight: 1.4 } }, t(group.blurb))
           ),
           tasks.map((task) => {
@@ -4551,17 +4587,36 @@ function EstateFile() {
                   "aria-label": t(rec.done ? "Mark incomplete: " : "Mark complete: ") + t(task.title),
                   "aria-pressed": rec.done ? "true" : "false",
                   style: { width: 58, flex: "0 0 58px", border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }
-                }, h("span", { "aria-hidden": "true", style: { width: 27, height: 27, borderRadius: 7, border: "2px solid " + (rec.done ? T.green : T.inkSoft), background: rec.done ? T.green : "transparent", color: rec.done ? T.onAccent : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: fs(18), lineHeight: 1 } }, "✓")),
+                }, h("span", { "aria-hidden": "true", style: { width: 27, height: 27, borderRadius: 7, border: "2px solid " + (rec.done ? T.green : rec.status === "na" ? T.line : T.inkSoft), background: rec.done ? T.green : "transparent", color: rec.done ? T.onAccent : rec.status === "na" ? T.inkSoft : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: fs(18), lineHeight: 1 } }, rec.status === "na" ? "—" : "✓")),
                 h("button", {
                   onClick: () => setStartOpen(open ? null : task.id),
                   "aria-expanded": open ? "true" : "false",
                   style: { flex: 1, minWidth: 0, textAlign: "left", border: "none", background: "transparent", padding: "13px 12px 13px 0", cursor: "pointer", color: T.ink }
                 },
-                  h("div", { style: { fontSize: fs(13.5), fontWeight: 750, lineHeight: 1.35, textDecoration: rec.done ? "line-through" : "none", opacity: rec.done ? .72 : 1 } }, t(task.title)),
-                  h("div", { style: { fontSize: fs(10.5), color: T.inkSoft, marginTop: 4 } },
-                    rec.date ? t("Date: ") + rec.date : t("Tap for date, notes and details"))
+                  h("div", { style: { fontSize: fs(13.5), fontWeight: 750, lineHeight: 1.35, textDecoration: rec.done ? "line-through" : "none", opacity: rec.done ? .72 : rec.status === "na" ? .55 : 1 } }, t(task.title)),
+                  h("div", { style: { fontSize: fs(10.5), color: rec.status === "skipped" ? T.amber : T.inkSoft, fontWeight: rec.status ? 700 : 400, marginTop: 4 } },
+                    rec.status === "na" ? t("Doesn't apply to this estate — your call, tap the box to undo")
+                    : rec.status === "skipped" ? t("Skipped for now — still on your list")
+                    : rec.date && rec.done ? t("Completed: ") + rec.date
+                    : rec.date ? t("Date: ") + rec.date
+                    : t("Tap for date, notes and details"))
                 )
               ),
+              datePrompt === task.id && rec.done ? h("div", { style: { borderTop: "1px solid " + T.line, background: T.goldSoft, padding: "11px 14px 12px 58px" } },
+                h("div", { style: { fontSize: fs(11.5), fontWeight: 800, color: T.ink, marginBottom: 8 } }, t("When was this completed?")),
+                h("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } },
+                  h("button", {
+                    onClick: () => { updateStartTask(task.id, { date: todayISO() }); setDatePrompt(null); },
+                    style: { minHeight: 44, padding: "0 16px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontFamily: font.body, fontSize: fs(12), fontWeight: 800, cursor: "pointer" }
+                  }, t("Today")),
+                  h("input", {
+                    type: "date", value: rec.date || "", "aria-label": t("Choose the completion date"),
+                    onInput: (e) => { updateStartTask(task.id, { date: e.currentTarget.value }); },
+                    onChange: () => setDatePrompt(null),
+                    style: { ...inputStyle(), minHeight: 44, flex: "1 1 150px" }
+                  })),
+                h("div", { style: { fontSize: fs(9.8), color: T.inkSoft, marginTop: 6, lineHeight: 1.4 } },
+                  t("Today is already recorded — change it only if this happened on another day."))) : null,
               open ? h("div", { style: { borderTop: "1px solid " + T.line, padding: "13px 14px 15px 58px" } },
                 h("div", { style: { fontSize: fs(11.5), color: T.inkSoft, lineHeight: 1.5, marginBottom: task.url ? 6 : 12 } }, t(task.detail)),
                 task.url ? h("a", { href: task.url, target: "_blank", rel: "noopener noreferrer", style: { display: "inline-block", marginBottom: 12, color: T.blue, fontSize: fs(10.8), fontWeight: 800 } }, t(task.urlLabel || "Open official government information")) : null,
@@ -4570,7 +4625,22 @@ function EstateFile() {
                 ),
                 h(Field, { label: t("Notes") },
                   h("textarea", { value: rec.notes || "", rows: 3, placeholder: t("Add a note, reference number, person you spoke with, or what still needs to happen"), onInput: (e) => updateStartTask(task.id, { notes: e.currentTarget.value }), style: { ...inputStyle(), width: "100%", resize: "vertical", lineHeight: 1.45 } })
-                )
+                ),
+                h("div", { style: { marginTop: 12, paddingTop: 12, borderTop: "1px dashed " + T.line } },
+                  h("div", { style: { fontSize: fs(10.5), fontWeight: 800, color: T.inkSoft, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 7 } }, t("If this item is not for this estate")),
+                  h("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
+                    h("button", {
+                      onClick: () => setTaskStatus(task.id, "skipped"),
+                      "aria-pressed": rec.status === "skipped" ? "true" : "false",
+                      style: { minHeight: 44, padding: "9px 10px", borderRadius: 10, border: "1.5px solid " + (rec.status === "skipped" ? T.amber : T.line), background: rec.status === "skipped" ? T.goldSoft : T.btn2, color: rec.status === "skipped" ? T.amber : T.ink, fontFamily: font.body, fontSize: fs(11.5), fontWeight: 800, cursor: "pointer" }
+                    }, t(rec.status === "skipped" ? "Skipped — tap to resume" : "Skip for now")),
+                    h("button", {
+                      onClick: () => setTaskStatus(task.id, "na"),
+                      "aria-pressed": rec.status === "na" ? "true" : "false",
+                      style: { minHeight: 44, padding: "9px 10px", borderRadius: 10, border: "1.5px solid " + (rec.status === "na" ? T.inkSoft : T.line), background: T.btn2, color: rec.status === "na" ? T.ink : T.inkSoft, fontFamily: font.body, fontSize: fs(11.5), fontWeight: 800, cursor: "pointer" }
+                    }, t(rec.status === "na" ? "Marked as not applying — tap to undo" : "Doesn't apply to this estate"))),
+                  h("div", { style: { fontSize: fs(9.8), color: T.inkSoft, marginTop: 7, lineHeight: 1.45 } },
+                    t("Skipped items stay on your list and count as outstanding. Marking an item as not applying removes it from your total — that is your own decision, the app never makes it for you, and one tap undoes it.")))
               ) : null
             );
           })
