@@ -6,7 +6,7 @@
 const { useState, useMemo, useEffect, useRef } = React;
 const h = React.createElement;
 
-const APP_VERSION = "v1R";
+const APP_VERSION = "v1S";
 
 // ---- Day and night.
 //
@@ -3494,7 +3494,8 @@ function EstateFile() {
   );
 
   const estimateScreen = () => {
-    const raw = estImpair === "" ? null : Number(estImpair);
+    const cleaned = sanitiseAmountInput(estImpair);
+    const raw = cleaned === "" ? null : Number(cleaned);
     const hasInput = raw !== null && Number.isFinite(raw) && raw >= 0;
     const calc = hasInput ? calculateProbateFees(province, raw) : null;
     const p = provinceDef(province);
@@ -3620,12 +3621,26 @@ function EstateFile() {
       province === "QC" ? null : h("div", { style: { background: T.card, border: "1px solid " + T.line, borderRadius: 12, padding: "14px 15px", marginBottom: 12 } },
         h(Field, { label: t("Estate value for this calculation"), hint: t(hint) },
           h("input", {
+            // Store EXACTLY what was typed and sanitise only when computing.
+            // The v1R version sanitised inside onInput, which rewrote the DOM
+            // value on any keystroke the sanitiser changed (a comma, a space).
+            // iPadOS keyboards insert text through a composition session, and
+            // a controlled rewrite that differs from what was just typed ends
+            // that session — WebKit then drops the keystrokes that follow, so
+            // the field appears dead. An iPhone's decimal pad has no comma or
+            // space key, every keystroke sanitises to itself, and the rewrite
+            // never fires: which is precisely why this failed on iPad only,
+            // through two versions. The controlled value now always equals
+            // the DOM value, so React never rewrites mid-typing, and the
+            // result card echoes the interpreted amount so "1,000,000" is
+            // visibly read as one million.
             type: "text", inputMode: "decimal", autoComplete: "off",
+            autoCorrect: "off", autoCapitalize: "off", spellCheck: false,
             enterKeyHint: "done", value: estImpair,
             "aria-label": t("Estate value for this calculation"),
-            onInput: (e) => setEstImpair(sanitiseAmountInput(e.currentTarget.value)),
+            onInput: (e) => setEstImpair(e.currentTarget.value),
             placeholder: "0",
-            style: { ...inputStyle(), width: "100%" }
+            style: { ...inputStyle(), width: "100%", fontSize: Math.max(16, fs(13.5)), WebkitUserSelect: "text", userSelect: "text" }
           }))
       ),
 
